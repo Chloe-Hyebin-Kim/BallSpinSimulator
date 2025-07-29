@@ -5,6 +5,7 @@
 #include "Engine/Engine.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
+#include "TopCameraActor.h"
 
 
 
@@ -34,6 +35,12 @@ void ASpinController::BeginPlay()
             return;
         }
     }
+
+     ATopCameraActor* TopCam =  Cast<ATopCameraActor>(UGameplayStatics::GetActorOfClass(GetWorld(), ATopCameraActor::StaticClass()));
+     if (TopCam)
+     {
+         SetViewTarget(TopCam);
+     }
 
     // 콘솔 명령 등록
     
@@ -169,32 +176,22 @@ void ASpinController::OnShowOriginAxisCommand(const TArray<FString>& Args)
 {
     UE_LOG(LogTemp, Log, TEXT("OnShowOriginAxisCommand."));
 
-    FVector vecAxisX = BALL_LOCATION + 	FVector::XAxisVector * ARROWLENGTH;
+    ControlledBallActor->DrawWorldGizmoAxis();
+    /*FVector vecAxisX = BALL_LOCATION + 	FVector::XAxisVector * ARROWLENGTH;
     FVector vecAxisY = BALL_LOCATION + FVector::YAxisVector * ARROWLENGTH;
     FVector vecAxisZ = BALL_LOCATION + FVector::ZAxisVector* ARROWLENGTH;
 
 	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, vecAxisX, ARROWSIZE, XCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);
 	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, vecAxisY, ARROWSIZE, YCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);
-	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, vecAxisZ, ARROWSIZE, ZCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);
+	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, vecAxisZ, ARROWSIZE, ZCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);*/
 }
 
 void ASpinController::OnShowBallAxisCommand(const TArray<FString>& Args)
 {
     UE_LOG(LogTemp, Log, TEXT("OnShowBallAxisCommand."));
 
-    FVector vecBallSpinAxis = ControlledBallActor->GetBallSpinAxis();
-    FRotator rotBallSpinAxis = ControlledBallActor->GetBallRotator();
-    FVector rot2vec = rotBallSpinAxis.Vector();
-    rot2vec.Normalize();
+    ControlledBallActor->DrawBallSpinAxis();
+    //FVector vecBallSpinAxis = ControlledBallActor->GetBallSpinAxis();
+    //FRotator rotBallSpinAxis = ControlledBallActor->GetBallRotator();
     
-	FVector vecAxisX = BALL_LOCATION + vecBallSpinAxis.ForwardVector * ARROWLENGTH;
-	FVector vecAxisY = BALL_LOCATION + vecBallSpinAxis.RightVector * ARROWLENGTH;
-	FVector vecAxisZ = BALL_LOCATION + vecBallSpinAxis.UpVector * ARROWLENGTH;
-   
-   //FVector newSpinAxis = FVector(newRotation.GetComponentForAxis(EAxis::X), newRotation.GetComponentForAxis(EAxis::Y), newRotation.GetComponentForAxis(EAxis::Z));
-    //newSpinAxis = BALL_LOCATION + newSpinAxis * f32ArrowLength;
-
-	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, vecAxisX, ARROWSIZE, XCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);
-	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, vecAxisY, ARROWSIZE, YCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);
-	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, vecAxisZ, ARROWSIZE, ZCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);
 }

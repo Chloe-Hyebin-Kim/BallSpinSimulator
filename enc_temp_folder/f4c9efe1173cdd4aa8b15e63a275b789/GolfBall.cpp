@@ -228,9 +228,9 @@ void AGolfBall::DrawBallSpinAxis()
 		ReferenceVec = FVector(0.f, 1.f, 0.f);//== FVector::RightVector
 
 		// 로컬 축 생성
-		FVector vecForward = FVector::CrossProduct(ReferenceVec, m_SpinAxisAsVec).GetSafeNormal(); //x
-		FVector vecRight = FVector::CrossProduct(m_SpinAxisAsVec, vecForward).GetSafeNormal(); //y
-		FVector vecUp = FVector::CrossProduct(vecRight, vecForward).GetSafeNormal(); //z
+		FVector vecForward = FVector::CrossProduct(ReferenceVec, m_SpinAxisAsVec).GetSafeNormal(); //Y
+		FVector vecRight = FVector::CrossProduct(m_SpinAxisAsVec, vecForward).GetSafeNormal(); //X
+		FVector vecUp = FVector::CrossProduct(vecRight, vecForward).GetSafeNormal(); //Z
 
 		// 결과 확인
 		UE_LOG(LogTemp, Warning, TEXT("Right:   %s"), *vecRight.ToString());

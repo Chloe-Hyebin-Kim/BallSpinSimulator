@@ -37,8 +37,9 @@ public:
 	void DrawWorldGizmoAxis();
 
 public:
-	const FVector& GetBallSpinAxis() { return m_vecSpinAxis; }
-	const FRotator& GetBallRotator() { return m_rotSpinAxis; }
+	const FVector& GetBallSpinAxis() { return m_SpinAxisAsVec; }
+	const FRotator& GetBallRotator() { return m_SpinAxisAsRot; }
+	const FQuat& GetBallQuaternion() { return m_SpinAxisAsQuat; }
 
 private:
 	void SetVisible(bool isVisible);
@@ -59,11 +60,11 @@ protected:
 	  FVector m_vecBallLocation;
 	  
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (AllowPrivateAccess = "true"))
-	  FVector m_vecSpinAxis;
+	  FVector m_SpinAxisAsVec;//m_vecSpinAxis;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (AllowPrivateAccess = "true"))
-		FQuat m_quatSpinAxis;
+		FQuat m_SpinAxisAsQuat;//m_quatSpinAxis;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (AllowPrivateAccess = "true"))
-		FRotator m_rotSpinAxis;
+		FRotator m_SpinAxisAsRot;//m_rotSpinAxis;
 
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (AllowPrivateAccess = "true"))
