@@ -25,8 +25,6 @@ ASpinSimulatorGameModeBase::ASpinSimulatorGameModeBase()
     //GameStateClass = nullptr;
     //SpectatorClass = nullptr;
 
-    m_vecSpinAxis = FVector::UpVector;//(로컬 Z축==0,0,1)
-    m_rotSpinAxis = FRotator::ZeroRotator;
 }
 
 void ASpinSimulatorGameModeBase::BeginPlay()
@@ -43,16 +41,13 @@ void ASpinSimulatorGameModeBase::BeginPlay()
     // 공 스폰
     AGolfBall* BallActor = GetWorld()->SpawnActor<AGolfBall>(AGolfBall::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
 
-
     // 카메라 스폰
-   // ATopCameraActor* TopCam = Cast<ATopCameraActor>(UGameplayStatics::GetActorOfClass(GetWorld(), ATopCameraActor::StaticClass()));
-     ATopCameraActor* TopCam = GetWorld()->SpawnActor<ATopCameraActor>(ATopCameraActor::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+    ATopCameraActor* TopCam = GetWorld()->SpawnActor<ATopCameraActor>(ATopCameraActor::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
     // 카메라 위치 지정
 	if (TopCam)
 	{
 		TopCam->SetTarget(BallActor);
-		/*SpinController->SetViewTarget(TopCam);
-		SpinController->SetViewTargetWithBlend`(TopCam, 0.0f);*/
+        SpinController->SetViewTarget(TopCam);
 	}
 
     //Spot Light 설정
@@ -65,8 +60,8 @@ void ASpinSimulatorGameModeBase::BeginPlay()
     {
         //SpotLight->GetLightComponent()->SetIntensity(290.0f); // 밝기 설정- 조명 전압 29V를 루멘값으로 추정
 		//SpotLight->GetLightComponent()->SetLightColor(FLinearColor(0.8f, 0.5f, 0.35f)); // 근적외선 유사 붉은톤
-		//SpotLight->GetLightComponent()->SetOuterConeAngle(45.0f);
-		//SpotLight->GetLightComponent()->SetInnerConeAngle(25.0f);
+		//SpotLight->GetLightComponent()->SetOuterConeAngle(20.0f);
+		//SpotLight->GetLightComponent()->SetInnerConeAngle(3.0f);
         //SpotLight->GetLightComponent()->SetAttenuationRadius(2000.f);  // 밝기 분산
 
     }

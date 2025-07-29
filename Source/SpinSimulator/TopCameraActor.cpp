@@ -68,3 +68,16 @@ void ATopCameraActor::SetTarget(AActor* Target)
         TopCameraComponent->FocusSettings.TrackingFocusSettings.bDrawDebugTrackingFocusPoint=false;
     }
 }
+
+void ATopCameraActor::CaptureFrame()
+{
+    // 월드 좌표계에서 회전축 계산 (로컬 축 기준)
+    FQuat rotationQuat = FQuat(m_SpinAxisAsVec, FMath::DegreesToRadians(m_DegreesPerSecond * DeltaTime));
+    AddActorWorldRotation(rotationQuat, false, nullptr, ETeleportType::None);
+
+
+    // 디버그 라인 (회전축 시각화)
+    DrawDebugLine(GetWorld(), m_vecBallLocation - m_SpinAxisAsVec * 1000.f, m_vecBallLocation + m_SpinAxisAsVec * 1000.f, FColor::Orange, false, 1.f, 0, 0.1f);
+
+
+}

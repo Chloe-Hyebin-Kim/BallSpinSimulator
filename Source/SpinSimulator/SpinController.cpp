@@ -35,12 +35,13 @@ void ASpinController::BeginPlay()
             return;
         }
     }
-
-     ATopCameraActor* TopCam =  Cast<ATopCameraActor>(UGameplayStatics::GetActorOfClass(GetWorld(), ATopCameraActor::StaticClass()));
-     if (TopCam)
-     {
-         SetViewTarget(TopCam);
-     }
+    //
+    ////카메라 탐색 후 뷰 설정
+    // ATopCameraActor* TopCam =  Cast<ATopCameraActor>(UGameplayStatics::GetActorOfClass(GetWorld(), ATopCameraActor::StaticClass()));
+    // if (TopCam)
+    // {
+    //    SetViewTarget(TopCam);
+    // }
 
     // 콘솔 명령 등록
     

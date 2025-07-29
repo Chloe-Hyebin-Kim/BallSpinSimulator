@@ -35,6 +35,7 @@ public:
 
 	void DrawBallSpinAxis();
 	void DrawWorldGizmoAxis();
+	void CaptureFrame();
 
 public:
 	const FVector& GetBallSpinAxis() { return m_SpinAxisAsVec; }
@@ -49,15 +50,16 @@ private:
 protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere,meta = (AllowPrivateAccess = "true"))
 		bool bSpin = false;
-		
-	//UPROPERTY(BlueprintReadWrite, EditAnywhere,meta = (AllowPrivateAccess = "true"))
-		//class USceneComponent* Root;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere,meta = (AllowPrivateAccess = "true"))
 		class UStaticMeshComponent* GolfBallMesh;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (AllowPrivateAccess = "true"))
 	  FVector m_vecBallLocation;
+
+	  FVector m_BallForward;
+	  FVector m_BallRight;
+	  FVector m_BallUp;
 	  
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (AllowPrivateAccess = "true"))
 	  FVector m_SpinAxisAsVec;//m_vecSpinAxis;
@@ -68,5 +70,8 @@ protected:
 
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (AllowPrivateAccess = "true"))
-		float m_f32SpinSpeedDegPerSec;//SpinSpeed ( 360.f == 초당 1회전)
+	float m_DegreesPerFrame;//(1프레임 당 회전 하는 각도)
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (AllowPrivateAccess = "true"))
+		float m_DegreesPerSecond;//(1초당 회전 하는 각도)
 };
