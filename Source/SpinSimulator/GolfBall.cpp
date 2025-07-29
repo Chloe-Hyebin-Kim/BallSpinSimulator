@@ -127,17 +127,13 @@ void AGolfBall::SetSpinAxis(const FVector& NewSpinAxis)
 	m_SpinAxisAsRot = FRotationMatrix::MakeFromZ(m_SpinAxisAsVec).Rotator();
 	SetActorRotation(m_SpinAxisAsRot);
 
+	// FRotationMatrix
 	m_SpinAxisAsVec = NewSpinAxis.GetSafeNormal();// 반드시 정규화
 	m_SpinAxisAsRot = FRotationMatrix::MakeFromZ(m_SpinAxisAsVec).Rotator();// Z축을 주어진 방향에 정렬
 	SetActorRotation(m_SpinAxisAsRot);
+
 	UE_LOG(LogTemp, Log, TEXT("Normalized SpinAxis (%f, %f, %f)"), m_SpinAxisAsVec.X, m_SpinAxisAsVec.Y, m_SpinAxisAsVec.Z);
 
-	// 출력
-	UE_LOG(LogTemp, Log, TEXT("[결과]"));
-	UE_LOG(LogTemp, Log, TEXT("FVector 축 방향: (%f, %f, %f)"), RotatedAxis.X, RotatedAxis.Y, RotatedAxis.Z);
-	UE_LOG(LogTemp, Log, TEXT("FQuat 회전: (X=%f, Y=%f, Z=%f, W=%f)"), CombinedRot.X, CombinedRot.Y, CombinedRot.Z, CombinedRot.W);
-	FRotator Euler = CombinedRot.Rotator();
-	UE_LOG(LogTemp, Log, TEXT("FRotator 오일러: Pitch=%f, Yaw=%f, Roll=%f"), Euler.Pitch, Euler.Yaw, Euler.Roll);
 	AlignToSpinAxis();
 }
 
@@ -152,12 +148,6 @@ void AGolfBall::AlignToSpinAxis()
 	// FQuat 직접 회전 (차분 회전량만 적용하려면)
 	m_SpinAxisAsQuat = FQuat::FindBetweenNormals(FVector::UpVector, m_SpinAxisAsVec);//deltaRotation 
 	//SetActorRotation(m_SpinAxisAsQuat * GetActorQuat());
-
-	// FRotationMatrix
-	m_SpinAxisAsRot = FRotationMatrix::MakeFromZ(m_SpinAxisAsVec).Rotator();// Z축을 주어진 방향에 정렬
-	SetActorRotation(m_SpinAxisAsRot);
-
-	///////////////////////
 
 	m_BallForward = GetActorForwardVector();
 	m_BallRight = GetActorRightVector();
@@ -197,7 +187,8 @@ void AGolfBall::CaptureFrame()
 
 	for (int i = 1; i < FRAMECOUNT; ++i)
 	{	
-		// 월드 좌표계에서 회전축 계산 (로컬 축 기준)
+		/*
+		 // 월드 좌표계에서 회전축 계산 (로컬 축 기준)
 
 		float AngleDeg = m_DegreesPerFrame * i;
 		float AngleRad = FMath::DegreesToRadians(AngleDeg);
@@ -212,8 +203,29 @@ void AGolfBall::CaptureFrame()
 
 		// 디버그 라인 (회전축 시각화)
 		DrawDebugLine(GetWorld(), m_vecBallLocation - m_SpinAxisAsVec * 1000.f, m_vecBallLocation + m_SpinAxisAsVec * 1000.f, FColor::Orange, false, 1.f, 0, 0.1f);
+		*/
 
 
+		FTimerHandle timerHandle;
+		FTimerDelegate delayCommandDelegate = FTimerDelegate::CreateLambda([=]()
+			{
+				float AngleDeg = m_DegreesPerFrame * i;
+				float AngleRad = FMath::DegreesToRadians(AngleDeg);
+				FQuat rotationQuat = FQuat(m_SpinAxisAsVec, AngleRad);// 회전 쿼터니언
+				AddActorWorldRotation(rotationQuat, false, nullptr, ETeleportType::None);
+
+				UE_LOG(LogTemp, Log, TEXT("### %d ### m_SpinAxisAsVec : (%f, %f, %f)"),i, m_SpinAxisAsVec.X, m_SpinAxisAsVec.Y, m_SpinAxisAsVec.Z);
+				UE_LOG(LogTemp, Log, TEXT("### %d ### rotationQuat: X=%f, Y=%f, Z=%f, W=%f"),i, rotationQuat.X, rotationQuat.Y, rotationQuat.Z, rotationQuat.W);
+				UE_LOG(LogTemp, Log, TEXT("### %d ### rotationQuat.RotateVector: (%f, %f, %f)"), i,rotationQuat.RotateVector(FVector(1, 0, 0)).X, rotationQuat.RotateVector(FVector(0, 1, 0)).Y, rotationQuat.RotateVector(FVector(0, 0, 1)).Z);
+				UE_LOG(LogTemp, Log, TEXT("### %d ### Euler: Pitch=%f, Yaw=%f, Roll=%f"),i, rotationQuat.Rotator().Pitch, rotationQuat.Rotator().Yaw, rotationQuat.Rotator().Roll);
+
+
+				// 디버그 라인 (회전축 시각화)
+				DrawDebugLine(GetWorld(), m_vecBallLocation - m_SpinAxisAsVec * 1000.f, m_vecBallLocation + m_SpinAxisAsVec * 1000.f, FColor::Orange, false, 1.f, 0, 0.1f);
+
+
+			});
+		GetWorld()->GetTimerManager().SetTimer(timerHandle, delayCommandDelegate, 2.f * i, false);
 	}
 
 }

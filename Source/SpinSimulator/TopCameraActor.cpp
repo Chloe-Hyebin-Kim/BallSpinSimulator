@@ -2,6 +2,7 @@
 
 
 #include "SpinSimulator.h"
+
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -55,16 +56,16 @@ void ATopCameraActor::BeginPlay()
     Super::BeginPlay();
 }
 
-void ATopCameraActor::SetTarget(AActor* Target)
+void ATopCameraActor::SetTarget(AGolfBall* Target)
 {
     TargetActor = Target;
     if (TargetActor)
     {
-        FVector BallLocation = TargetActor->GetActorLocation();
-        SetActorLocation(FVector(BallLocation.X, BallLocation.Y, BallLocation.Z+50.f));//300.f));
+        //FVector BallLocation = TargetActor->GetActorLocation();
+        SetActorLocation(FVector(BALL_LOCATION.X, BALL_LOCATION.Y, BALL_LOCATION.Z+50.f));//300.f));
 
         TopCameraComponent->FocusSettings.FocusMethod = ECameraFocusMethod::Tracking;
-        TopCameraComponent->FocusSettings.TrackingFocusSettings.ActorToTrack= Target;
+        TopCameraComponent->FocusSettings.TrackingFocusSettings.ActorToTrack = Target;
         TopCameraComponent->FocusSettings.TrackingFocusSettings.bDrawDebugTrackingFocusPoint=false;
     }
 }
@@ -72,12 +73,16 @@ void ATopCameraActor::SetTarget(AActor* Target)
 void ATopCameraActor::CaptureFrame()
 {
     // 월드 좌표계에서 회전축 계산 (로컬 축 기준)
-    FQuat rotationQuat = FQuat(m_SpinAxisAsVec, FMath::DegreesToRadians(m_DegreesPerSecond * DeltaTime));
+    float DegreesPerSecond = TargetActor->GetDegreesPerSecond();
+    float DegreesPerFrame = TargetActor->GetDegreesPerFrame();
+    FVector SpinAxis = TargetActor->GetBallSpinAxis();
+
+    FQuat rotationQuat = FQuat(SpinAxis, FMath::DegreesToRadians(DegreesPerSecond * 0.002));
     AddActorWorldRotation(rotationQuat, false, nullptr, ETeleportType::None);
 
 
     // 디버그 라인 (회전축 시각화)
-    DrawDebugLine(GetWorld(), m_vecBallLocation - m_SpinAxisAsVec * 1000.f, m_vecBallLocation + m_SpinAxisAsVec * 1000.f, FColor::Orange, false, 1.f, 0, 0.1f);
+    //DrawDebugLine(GetWorld(), BALL_LOCATION - SpinAxis * 1000.f, BALL_LOCATION + SpinAxis * 1000.f, FColor::Orange, false, 1.f, 0, 0.1f);
 
 
 }

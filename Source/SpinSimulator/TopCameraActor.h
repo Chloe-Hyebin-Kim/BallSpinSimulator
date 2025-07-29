@@ -6,6 +6,8 @@
 #include "CineCameraComponent.h"
 #include "CineCameraActor.h"
 
+#include "GolfBall.h"
+
 #include "TopCameraActor.generated.h"
 
 UCLASS()
@@ -28,10 +30,11 @@ public:
         UCineCameraComponent* TopCameraComponent;
 
     // 공을 따라 자동 위치 조정 (선택적)
-    void SetTarget(AActor* Target);
+    void SetTarget(AGolfBall* Target);
 
-    void CaptureFrame();
     
 private:
-    AActor* TargetActor;
+    AGolfBall* TargetActor;
+
+    void CaptureFrame();
 };

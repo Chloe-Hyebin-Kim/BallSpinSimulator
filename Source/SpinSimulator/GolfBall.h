@@ -41,6 +41,8 @@ public:
 	const FVector& GetBallSpinAxis() { return m_SpinAxisAsVec; }
 	const FRotator& GetBallRotator() { return m_SpinAxisAsRot; }
 	const FQuat& GetBallQuaternion() { return m_SpinAxisAsQuat; }
+	float GetDegreesPerFrame() { return m_DegreesPerFrame; }
+	float GetDegreesPerSecond() { return m_DegreesPerSecond; }
 
 private:
 	void SetVisible(bool isVisible);

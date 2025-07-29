@@ -29,6 +29,7 @@ protected:
     void OnSetAxisCommand(const TArray<FString>& Args);
     void OnShowOriginAxisCommand(const TArray<FString>& Args);
     void OnShowBallAxisCommand(const TArray<FString>& Args);
+    void OnCaptureCameraView(const TArray<FString>& Args);
     
 
 protected:

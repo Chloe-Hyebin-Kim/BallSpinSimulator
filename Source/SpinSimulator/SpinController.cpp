@@ -85,6 +85,15 @@ void ASpinController::BeginPlay()
         FConsoleCommandWithArgsDelegate::CreateUObject(this, &ASpinController::OnShowBallAxisCommand)
     );
     UE_LOG(LogTemp, Log, TEXT("RegisterConsoleCommand.  >>>ShowBallAxis"));
+
+
+    //CaptureView
+    IConsoleManager::Get().RegisterConsoleCommand(
+        TEXT("CaptureView"),
+        TEXT("Capture View"),
+        FConsoleCommandWithArgsDelegate::CreateUObject(this, &ASpinController::OnCaptureCameraView)
+    );
+    UE_LOG(LogTemp, Log, TEXT("RegisterConsoleCommand.  >>>CaptureView"));
 }
 
 void ASpinController::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -195,4 +204,10 @@ void ASpinController::OnShowBallAxisCommand(const TArray<FString>& Args)
     //FVector vecBallSpinAxis = ControlledBallActor->GetBallSpinAxis();
     //FRotator rotBallSpinAxis = ControlledBallActor->GetBallRotator();
     
+}
+
+void ASpinController::OnCaptureCameraView(const TArray<FString>& Args)
+{
+    UE_LOG(LogTemp, Log, TEXT("OnCaptureCameraView."));
+    ControlledBallActor->CaptureFrame();
 }
