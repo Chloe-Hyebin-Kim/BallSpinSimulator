@@ -10,7 +10,6 @@ AGolfBall::AGolfBall()
 	PrimaryActorTick.bCanEverTick = true;
 	
 	// Default spin values
-	m_vecBallLocation = BALL_LOCATION;
 	m_SpinAxisAsVec = FVector::UpVector;//(로컬 Z축==0,0,1)
 	m_SpinAxisAsRot = FRotationMatrix::MakeFromZ(m_SpinAxisAsVec).Rotator(); //m_SpinAxisAsRot = FRotator::ZeroRotator;
 	m_SpinAxisAsQuat = FQuat::FindBetweenNormals(FVector::UpVector, m_SpinAxisAsVec);//deltaRotation 
@@ -51,7 +50,6 @@ AGolfBall::AGolfBall()
 
 AGolfBall::~AGolfBall()
 {
-	m_vecBallLocation = BALL_LOCATION;
 	m_SpinAxisAsRot = FRotator::ZeroRotator;
 	m_SpinAxisAsVec = FVector::UpVector;//(로컬 Z축==0,0,1)
 	m_DegreesPerSecond = 360.f; //초당 1회전 = 60 RPM
@@ -63,7 +61,7 @@ void AGolfBall::BeginPlay()
 {
 	Super::BeginPlay();
 
-	SetActorLocation(m_vecBallLocation);
+	SetActorLocation(BALL_LOCATION);
 
 	m_SpinAxisAsRot = FRotationMatrix::MakeFromZ(m_SpinAxisAsVec).Rotator();
 	SetActorRotation(m_SpinAxisAsRot);
@@ -86,7 +84,7 @@ void AGolfBall::Tick(float DeltaTime)
 
 
 		// 디버그 라인 (회전축 시각화)
-		DrawDebugLine(GetWorld(), m_vecBallLocation - m_SpinAxisAsVec * 1000.f, m_vecBallLocation + m_SpinAxisAsVec * 1000.f, FColor::Orange, false, 1.f, 0, 0.1f);
+		DrawDebugLine(GetWorld(), BALL_LOCATION - m_SpinAxisAsVec * 1000.f, BALL_LOCATION + m_SpinAxisAsVec * 1000.f, FColor::Orange, false, 1.f, 0, 0.1f);
 
 		//if (!m_SpinAxisAsVec.IsNearlyZero() && m_DegreesPerSecond != 0.0f)
 		//{
@@ -104,7 +102,16 @@ void AGolfBall::Tick(float DeltaTime)
 
 void AGolfBall::SetIsSpin(bool bTmp/* = false*/)
 {
-	bSpin = !bSpin;
+	if (bTmp)//무조건 끄기
+	{
+		if (bSpin){
+			bSpin =false;
+		}
+	} 
+	else //default
+	{
+		bSpin = !bSpin;
+	}
 }
 
 void AGolfBall::SetSpinSpeed(float f32InputRPM)
@@ -112,7 +119,7 @@ void AGolfBall::SetSpinSpeed(float f32InputRPM)
 	m_DegreesPerSecond = f32InputRPM * RPM2DPS; //RPM -> DegreesPerSecond
 	m_DegreesPerFrame = m_DegreesPerSecond*DPS2FPS;//Degrees Per Second -> Degrees Per Frame
 
-	UE_LOG(LogTemp, Log, TEXT("Set Spin Speed: %f RPM (%f deg/s)"), f32InputRPM, m_DegreesPerSecond);
+	UE_LOG(LogTemp, Log, TEXT("Set Spin Speed: %f RPM (%f deg/s, %f deg/frame)"), f32InputRPM, m_DegreesPerSecond, m_DegreesPerFrame);
 }
 
 void AGolfBall::SetSpinAxis(const FVector& NewSpinAxis)
@@ -122,6 +129,7 @@ void AGolfBall::SetSpinAxis(const FVector& NewSpinAxis)
 		UE_LOG(LogTemp, Warning, TEXT(" Zero vector is not a valid spin axis."));
 		return;
 	}
+	m_InputSpinAxis = NewSpinAxis;
 
 	m_SpinAxisAsVec = FVector::UpVector;//(로컬 Z축 == 0,0,1)
 	m_SpinAxisAsRot = FRotationMatrix::MakeFromZ(m_SpinAxisAsVec).Rotator();
@@ -177,55 +185,57 @@ void AGolfBall::AlignToSpinAxis()
 
 
 
+void AGolfBall::RotateBallForFrameCapture(int idx)
+{
+	// 월드 좌표계에서 회전축 계산 (로컬 축 기준)
+	float AngleDeg = m_DegreesPerFrame * idx;
+	float AngleRad = FMath::DegreesToRadians(AngleDeg);
+	FQuat rotationQuat = FQuat(m_SpinAxisAsVec, AngleRad);// 회전 쿼터니언  (로컬 기준 회전 축을 기준으로 AngleRad만큼 회전을 액터에 누적 적용)
+	AddActorWorldRotation(rotationQuat, false, nullptr, ETeleportType::None);//World Space 기준 누적 회전 적용
+	
+	// 디버그 라인 (회전축 시각화)
+	DrawDebugLine(GetWorld(), BALL_LOCATION - m_SpinAxisAsVec * 1000.f, BALL_LOCATION + m_SpinAxisAsVec * 1000.f, FColor::Orange, false, 1.5f, 0, 0.1f);
+
+	UE_LOG(LogTemp, Log, TEXT("### %d Frame ###"), idx);
+	UE_LOG(LogTemp, Log, TEXT("[ %d ] Spin Axis (Local Vec) : (%f, %f, %f)"), idx, m_SpinAxisAsVec.X, m_SpinAxisAsVec.Y, m_SpinAxisAsVec.Z);//로컬 기준 회전 축
+	UE_LOG(LogTemp, Log, TEXT("[ %d ] Rotation Quaternion : X = %f, Y = %f, Z = %f, W = %f"), idx, rotationQuat.X, rotationQuat.Y, rotationQuat.Z, rotationQuat.W);//(X, Y, Z) = sin(θ/2) * 회전축 ,  W = cos(θ/2)
+	UE_LOG(LogTemp, Log, TEXT("[ %d ] Rotated Direction (World Vec): Forward (X) = %f, Right (Y) = %f, Up (Z) = %f"), idx, rotationQuat.RotateVector(FVector(1, 0, 0)).X, rotationQuat.RotateVector(FVector(0, 1, 0)).Y, rotationQuat.RotateVector(FVector(0, 0, 1)).Z);//회전을 적용했을 때의 새로운 방향 벡터
+	UE_LOG(LogTemp, Log, TEXT("[ %d ] Euler (deg): Pitch = %f, Yaw = %f, Roll = %f"), idx, rotationQuat.Rotator().Pitch, rotationQuat.Rotator().Yaw, rotationQuat.Rotator().Roll);//쿼터니언을 오일러 각(Euler angles) 으로 변환한 값
+}
+
 void AGolfBall::CaptureFrame()
 {
 	if (bSpin)
 	{
-		SetIsSpin();
+		bSpin = false;//무조건 스핀 끄기
+
+		m_SpinAxisAsVec = m_InputSpinAxis.GetSafeNormal();// 반드시 정규화
+		m_SpinAxisAsRot = FRotationMatrix::MakeFromZ(m_SpinAxisAsVec).Rotator();// Z축을 주어진 방향에 정렬
+		SetActorRotation(m_SpinAxisAsRot);
 	}
 
 
-	for (int i = 1; i < FRAMECOUNT; ++i)
+	for (int i = 1; i <= FRAMECOUNT; ++i)
 	{	
-		/*
-		 // 월드 좌표계에서 회전축 계산 (로컬 축 기준)
-
-		float AngleDeg = m_DegreesPerFrame * i;
-		float AngleRad = FMath::DegreesToRadians(AngleDeg);
-		FQuat rotationQuat = FQuat(m_SpinAxisAsVec, AngleRad);// 회전 쿼터니언
-		AddActorWorldRotation(rotationQuat, false, nullptr, ETeleportType::None);
-
-		UE_LOG(LogTemp, Log, TEXT("### 회전 축 : (%f, %f, %f)"), m_SpinAxisAsVec.X, m_SpinAxisAsVec.Y, m_SpinAxisAsVec.Z);
-		UE_LOG(LogTemp, Log, TEXT("### 회전 쿼터니언: X=%f, Y=%f, Z=%f, W=%f"), rotationQuat.X, rotationQuat.Y, rotationQuat.Z, rotationQuat.W);
-		UE_LOG(LogTemp, Log, TEXT("### 월드입장에서 회전 축: (%f, %f, %f)"), rotationQuat.RotateVector(FVector(1,0, 0)), rotationQuat.RotateVector(FVector(0, 1,0)), rotationQuat.RotateVector(FVector(0, 0, 1)));
-		UE_LOG(LogTemp, Log, TEXT("### 오일러 각: Pitch=%f, Yaw=%f, Roll=%f"),rotationQuat.Rotator().Pitch, rotationQuat.Rotator().Yaw, rotationQuat.Rotator().Roll);
-
-
-		// 디버그 라인 (회전축 시각화)
-		DrawDebugLine(GetWorld(), m_vecBallLocation - m_SpinAxisAsVec * 1000.f, m_vecBallLocation + m_SpinAxisAsVec * 1000.f, FColor::Orange, false, 1.f, 0, 0.1f);
-		*/
-
-
 		FTimerHandle timerHandle;
 		FTimerDelegate delayCommandDelegate = FTimerDelegate::CreateLambda([=]()
 			{
 				float AngleDeg = m_DegreesPerFrame * i;
 				float AngleRad = FMath::DegreesToRadians(AngleDeg);
-				FQuat rotationQuat = FQuat(m_SpinAxisAsVec, AngleRad);// 회전 쿼터니언
+				FQuat rotationQuat = FQuat(m_SpinAxisAsVec, AngleRad);// 회전 쿼터니언 (로컬 기준 회전 축을 기준으로 AngleRad만큼 회전하는 쿼터니언 회전 객체)
 				AddActorWorldRotation(rotationQuat, false, nullptr, ETeleportType::None);
 
-				UE_LOG(LogTemp, Log, TEXT("### %d ### m_SpinAxisAsVec : (%f, %f, %f)"),i, m_SpinAxisAsVec.X, m_SpinAxisAsVec.Y, m_SpinAxisAsVec.Z);
-				UE_LOG(LogTemp, Log, TEXT("### %d ### rotationQuat: X=%f, Y=%f, Z=%f, W=%f"),i, rotationQuat.X, rotationQuat.Y, rotationQuat.Z, rotationQuat.W);
-				UE_LOG(LogTemp, Log, TEXT("### %d ### rotationQuat.RotateVector: (%f, %f, %f)"), i,rotationQuat.RotateVector(FVector(1, 0, 0)).X, rotationQuat.RotateVector(FVector(0, 1, 0)).Y, rotationQuat.RotateVector(FVector(0, 0, 1)).Z);
-				UE_LOG(LogTemp, Log, TEXT("### %d ### Euler: Pitch=%f, Yaw=%f, Roll=%f"),i, rotationQuat.Rotator().Pitch, rotationQuat.Rotator().Yaw, rotationQuat.Rotator().Roll);
-
+				UE_LOG(LogTemp, Log, TEXT("### %d Frame ###"), i);
+				UE_LOG(LogTemp, Log, TEXT("[ %d ] Spin Axis (Local Vec) : (%f, %f, %f)"),i, m_SpinAxisAsVec.X, m_SpinAxisAsVec.Y, m_SpinAxisAsVec.Z);//로컬 기준 회전 축
+				UE_LOG(LogTemp, Log, TEXT("[ %d ] Rotation Quaternion : X = %f, Y = %f, Z = %f, W = %f"),i, rotationQuat.X, rotationQuat.Y, rotationQuat.Z, rotationQuat.W);//(X, Y, Z) = sin(θ/2) * 회전축 ,  W = cos(θ/2)
+				UE_LOG(LogTemp, Log, TEXT("[ %d ] Rotated Direction (World Vec): Forward (X) = %f, Right (Y) = %f, Up (Z) = %f"), i, rotationQuat.RotateVector(FVector(1, 0, 0)).X, rotationQuat.RotateVector(FVector(0, 1, 0)).Y, rotationQuat.RotateVector(FVector(0, 0, 1)).Z);//회전을 적용했을 때의 새로운 방향 벡터
+				UE_LOG(LogTemp, Log, TEXT("[ %d ] Euler (deg): Pitch = %f, Yaw = %f, Roll = %f"),i, rotationQuat.Rotator().Pitch, rotationQuat.Rotator().Yaw, rotationQuat.Rotator().Roll);//쿼터니언을 오일러 각(Euler angles) 으로 변환한 값
 
 				// 디버그 라인 (회전축 시각화)
-				DrawDebugLine(GetWorld(), m_vecBallLocation - m_SpinAxisAsVec * 1000.f, m_vecBallLocation + m_SpinAxisAsVec * 1000.f, FColor::Orange, false, 1.f, 0, 0.1f);
-
+				DrawDebugLine(GetWorld(), BALL_LOCATION - m_SpinAxisAsVec * 1000.f, BALL_LOCATION + m_SpinAxisAsVec * 1000.f, FColor::Orange, false, 1.f, 0, 0.1f);
 
 			});
-		GetWorld()->GetTimerManager().SetTimer(timerHandle, delayCommandDelegate, 2.f * i, false);
+		GetWorld()->GetTimerManager().SetTimer(timerHandle, delayCommandDelegate, 2.5f * i, false);
 	}
 
 }
@@ -245,13 +255,13 @@ void AGolfBall::DrawBallSpinAxis()
 {
 	FVector vecDir= m_SpinAxisAsVec - FVector::UpVector;
 
-	FVector vecAxisX = m_vecBallLocation + FVector(vecDir.X, 0.f, 0.f) * ARROWLENGTH;
-	FVector vecAxisY = m_vecBallLocation + FVector(0.f, vecDir.Y, 0.f) * ARROWLENGTH;
-	FVector vecAxisZ = m_vecBallLocation + FVector(0.f, 0.f, vecDir.Y) * ARROWLENGTH;
+	FVector vecAxisX = BALL_LOCATION + FVector(vecDir.X, 0.f, 0.f) * ARROWLENGTH;
+	FVector vecAxisY = BALL_LOCATION + FVector(0.f, vecDir.Y, 0.f) * ARROWLENGTH;
+	FVector vecAxisZ = BALL_LOCATION + FVector(0.f, 0.f, vecDir.Y) * ARROWLENGTH;
 
-	DrawDebugDirectionalArrow(GetWorld(), m_vecBallLocation, vecAxisX, ARROWSIZE, XCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);
-	DrawDebugDirectionalArrow(GetWorld(), m_vecBallLocation, vecAxisY, ARROWSIZE, YCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);
-	DrawDebugDirectionalArrow(GetWorld(), m_vecBallLocation, vecAxisZ, ARROWSIZE, ZCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);
+	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, vecAxisX, ARROWSIZE, XCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);
+	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, vecAxisY, ARROWSIZE, YCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);
+	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, vecAxisZ, ARROWSIZE, ZCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);
 
 
 	UE_LOG(LogTemp, Log, TEXT("[Ball Gizmo] Forward Vector (X):   (%f, %f, %f)"), vecAxisX.X, vecAxisX.Y, vecAxisX.Z);
@@ -276,9 +286,9 @@ void AGolfBall::DrawBallSpinAxis()
 	//	UE_LOG(LogTemp, Warning, TEXT("Forward: %s"), *vecForward.ToString());
 	//	UE_LOG(LogTemp, Warning, TEXT("Up:      %s"), *vecUp.ToString());
 
-	//	DrawDebugDirectionalArrow(GetWorld(), m_vecBallLocation, m_vecBallLocation + vecForward * ARROWLENGTH, ARROWSIZE, XCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);// X축
-	//	DrawDebugDirectionalArrow(GetWorld(), m_vecBallLocation, m_vecBallLocation + vecRight * ARROWLENGTH, ARROWSIZE, YCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);// Y축
-	//	DrawDebugDirectionalArrow(GetWorld(), m_vecBallLocation, m_vecBallLocation + vecUp * ARROWLENGTH, ARROWSIZE, ZCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK); // Z축
+	//	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, BALL_LOCATION + vecForward * ARROWLENGTH, ARROWSIZE, XCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);// X축
+	//	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, BALL_LOCATION + vecRight * ARROWLENGTH, ARROWSIZE, YCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);// Y축
+	//	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, BALL_LOCATION + vecUp * ARROWLENGTH, ARROWSIZE, ZCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK); // Z축
 
 	//	UE_LOG(LogTemp, Log, TEXT("[Ball Gizmo] Forward Vector (X):   (%f, %f, %f)"), vecForward.X, vecForward.Y, vecForward.Z);
 	//	UE_LOG(LogTemp, Log, TEXT("[Ball Gizmo] Right Vector (Y): (%f, %f, %f)"), vecRight.X, vecRight.Y, vecRight.Z);
@@ -298,9 +308,9 @@ void AGolfBall::DrawBallSpinAxis()
 	//	UE_LOG(LogTemp, Warning, TEXT("Forward: %s"), *vecForward.ToString());
 	//	UE_LOG(LogTemp, Warning, TEXT("Up:      %s"), *vecUp.ToString());
 
-	//	DrawDebugDirectionalArrow(GetWorld(), m_vecBallLocation, m_vecBallLocation + vecForward * ARROWLENGTH, ARROWSIZE, XCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);// X축
-	//	DrawDebugDirectionalArrow(GetWorld(), m_vecBallLocation, m_vecBallLocation + vecRight * ARROWLENGTH, ARROWSIZE, YCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);// Y축
-	//	DrawDebugDirectionalArrow(GetWorld(), m_vecBallLocation, m_vecBallLocation + vecUp * ARROWLENGTH, ARROWSIZE, ZCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK); // Z축
+	//	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, BALL_LOCATION + vecForward * ARROWLENGTH, ARROWSIZE, XCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);// X축
+	//	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, BALL_LOCATION + vecRight * ARROWLENGTH, ARROWSIZE, YCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);// Y축
+	//	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, BALL_LOCATION + vecUp * ARROWLENGTH, ARROWSIZE, ZCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK); // Z축
 
 	//	UE_LOG(LogTemp, Log, TEXT("[Ball Gizmo] Forward Vector (X):   (%f, %f, %f)"), vecForward.X, vecForward.Y, vecForward.Z);
 	//	UE_LOG(LogTemp, Log, TEXT("[Ball Gizmo] Right Vector (Y): (%f, %f, %f)"), vecRight.X, vecRight.Y, vecRight.Z);
@@ -315,9 +325,9 @@ void AGolfBall::DrawBallSpinAxis()
 	FVector vecUp = AxisMatrix.GetUnitAxis(EAxis::Z); // 로컬 Z축 (Up)
 	FVector vecForward = AxisMatrix.GetUnitAxis(EAxis::Y); // 로컬 Y축 (Forward)
 
-	DrawDebugDirectionalArrow(GetWorld(), m_vecBallLocation, m_vecBallLocation + vecRight * ARROWLENGTH, ARROWSIZE, XCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);// X축
-	DrawDebugDirectionalArrow(GetWorld(), m_vecBallLocation, m_vecBallLocation + vecForward * ARROWLENGTH, ARROWSIZE, YCOLOR,false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);// Y축
-	DrawDebugDirectionalArrow(GetWorld(), m_vecBallLocation, m_vecBallLocation + vecUp * ARROWLENGTH, ARROWSIZE, ZCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK); // Z축
+	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, BALL_LOCATION + vecRight * ARROWLENGTH, ARROWSIZE, XCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);// X축
+	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, BALL_LOCATION + vecForward * ARROWLENGTH, ARROWSIZE, YCOLOR,false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);// Y축
+	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, BALL_LOCATION + vecUp * ARROWLENGTH, ARROWSIZE, ZCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK); // Z축
 
 	UE_LOG(LogTemp, Log, TEXT("[BallSpinAxis] Right Vector (X):   (%f, %f, %f)"), vecRight.X, vecRight.Y, vecRight.Z);
 	UE_LOG(LogTemp, Log, TEXT("[BallSpinAxis] Forward Vector (Y): (%f, %f, %f)"), vecForward.X, vecForward.Y, vecForward.Z);
@@ -347,19 +357,19 @@ void AGolfBall::DrawWorldGizmoAxis()
 	//UE_LOG(LogTemp, Warning, TEXT("Forward: %s"), *vecForward.ToString());
 	//UE_LOG(LogTemp, Warning, TEXT("Up:      %s"), *vecUp.ToString());
 
-	//DrawDebugDirectionalArrow(GetWorld(), m_vecBallLocation, m_vecBallLocation + vecForward * ARROWLENGTH, ARROWSIZE, XCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);// X축
-	//DrawDebugDirectionalArrow(GetWorld(), m_vecBallLocation, m_vecBallLocation + vecRight * ARROWLENGTH, ARROWSIZE, YCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);// Y축
-	//DrawDebugDirectionalArrow(GetWorld(), m_vecBallLocation, m_vecBallLocation + vecUp * ARROWLENGTH, ARROWSIZE, ZCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK); // Z축
+	//DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, BALL_LOCATION + vecForward * ARROWLENGTH, ARROWSIZE, XCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);// X축
+	//DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, BALL_LOCATION + vecRight * ARROWLENGTH, ARROWSIZE, YCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);// Y축
+	//DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, BALL_LOCATION + vecUp * ARROWLENGTH, ARROWSIZE, ZCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK); // Z축
 
 
 
-	FVector vecAxisX = m_vecBallLocation + FVector(1.f, 0.f, 0.f) * ARROWLENGTH;
-	FVector vecAxisY = m_vecBallLocation + FVector(0.f, 1.f, 0.f) * ARROWLENGTH;
-	FVector vecAxisZ = m_vecBallLocation + FVector(0.f, 0.f, 1.f) * ARROWLENGTH;
+	FVector vecAxisX = BALL_LOCATION + FVector(1.f, 0.f, 0.f) * ARROWLENGTH;
+	FVector vecAxisY = BALL_LOCATION + FVector(0.f, 1.f, 0.f) * ARROWLENGTH;
+	FVector vecAxisZ = BALL_LOCATION + FVector(0.f, 0.f, 1.f) * ARROWLENGTH;
 
-	DrawDebugDirectionalArrow(GetWorld(), m_vecBallLocation, vecAxisX, ARROWSIZE, XCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);
-	DrawDebugDirectionalArrow(GetWorld(), m_vecBallLocation, vecAxisY, ARROWSIZE, YCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);
-	DrawDebugDirectionalArrow(GetWorld(), m_vecBallLocation, vecAxisZ, ARROWSIZE, ZCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);
+	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, vecAxisX, ARROWSIZE, XCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);
+	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, vecAxisY, ARROWSIZE, YCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);
+	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, vecAxisZ, ARROWSIZE, ZCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);
 
 
 	UE_LOG(LogTemp, Log, TEXT("[World Gizmo] Forward Vector (X):   (%f, %f, %f)"), vecAxisX.X, vecAxisX.Y, vecAxisX.Z);

@@ -6,6 +6,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
 #include "TopCameraActor.h"
+#include "FrameCapture.h"
 
 
 
@@ -104,6 +105,7 @@ void ASpinController::EndPlay(const EEndPlayReason::Type EndPlayReason)
     IConsoleManager::Get().UnregisterConsoleObject(TEXT("SetSpinSpeed"));
     IConsoleManager::Get().UnregisterConsoleObject(TEXT("ShowOriginAxis"));
     IConsoleManager::Get().UnregisterConsoleObject(TEXT("ShowBallAxis"));
+    IConsoleManager::Get().UnregisterConsoleObject(TEXT("CaptureView"));
 
     Super::EndPlay(EndPlayReason);
 
@@ -201,13 +203,54 @@ void ASpinController::OnShowBallAxisCommand(const TArray<FString>& Args)
     UE_LOG(LogTemp, Log, TEXT("OnShowBallAxisCommand."));
 
     ControlledBallActor->DrawBallSpinAxis();
-    //FVector vecBallSpinAxis = ControlledBallActor->GetBallSpinAxis();
-    //FRotator rotBallSpinAxis = ControlledBallActor->GetBallRotator();
-    
 }
 
 void ASpinController::OnCaptureCameraView(const TArray<FString>& Args)
 {
     UE_LOG(LogTemp, Log, TEXT("OnCaptureCameraView."));
+
+   
+
+    // AFrameCapture 자동 검색     
+   // AFrameCapture* CaptureActor = Cast<AFrameCapture>(UGameplayStatics::GetActorOfClass(GetWorld(), AFrameCapture::StaticClass()));
+
+   /*
+     FVector vecInputSpinAxis = ControlledBallActor->GetInputSpinAxis();
+    FVector vecBallSpinAxis = ControlledBallActor->GetBallSpinAxis();
+    float f32DegreesPerFrame = ControlledBallActor->GetDegreesPerFrame();
+
+ 
+    TArray<AActor*> Found;
+    UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFrameCapture::StaticClass(), Found);
+
+    AFrameCapture* CaptureActor=nullptr;
+    if (Found.Num() > 0)
+    {
+        UE_LOG(LogTemp, Log, TEXT("Find Success."));
+
+        CaptureActor = Cast<AFrameCapture>(Found[0]);
+        if (!CaptureActor)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Can not find CaptureActor."));
+        }
+    }
+
+    ControlledBallActor->SetIsSpin(true);//무조건 스핀 끄기
+
+    for (int i = 1; i <= FRAMECOUNT; ++i)
+    {
+        int idx = i;
+        FTimerHandle timerHandle;
+        FTimerDelegate delayCommandDelegate = FTimerDelegate::CreateLambda([=]()
+            {
+                ControlledBallActor->RotateBallForFrameCapture(idx);
+               // CaptureActor->CaptureAndSave(idx, vecInputSpinAxis);
+            });
+        GetWorld()->GetTimerManager().SetTimer(timerHandle, delayCommandDelegate, 3.5f * i, false);
+    }
+    */
+    
+
     ControlledBallActor->CaptureFrame();
+
 }

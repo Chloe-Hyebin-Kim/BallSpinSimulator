@@ -36,8 +36,10 @@ public:
 	void DrawBallSpinAxis();
 	void DrawWorldGizmoAxis();
 	void CaptureFrame();
+	void RotateBallForFrameCapture(int idx);
 
 public:
+	const FVector& GetInputSpinAxis() { return m_InputSpinAxis; }
 	const FVector& GetBallSpinAxis() { return m_SpinAxisAsVec; }
 	const FRotator& GetBallRotator() { return m_SpinAxisAsRot; }
 	const FQuat& GetBallQuaternion() { return m_SpinAxisAsQuat; }
@@ -56,15 +58,16 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere,meta = (AllowPrivateAccess = "true"))
 		class UStaticMeshComponent* GolfBallMesh;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (AllowPrivateAccess = "true"))
-	  FVector m_vecBallLocation;
 
 	  FVector m_BallForward;
 	  FVector m_BallRight;
 	  FVector m_BallUp;
-	  
+
+	  	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (AllowPrivateAccess = "true"))
+	  FVector m_InputSpinAxis;//Unnormalized
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (AllowPrivateAccess = "true"))
-	  FVector m_SpinAxisAsVec;//m_vecSpinAxis;
+		FVector m_SpinAxisAsVec;//m_vecSpinAxis;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (AllowPrivateAccess = "true"))
 		FQuat m_SpinAxisAsQuat;//m_quatSpinAxis;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (AllowPrivateAccess = "true"))
