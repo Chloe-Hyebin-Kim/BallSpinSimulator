@@ -18,7 +18,7 @@ ATopCameraActor::ATopCameraActor()
 
     // 위에서 아래를 향하게 초기 설정
     FVector camLocation = BALL_LOCATION;
-    camLocation.Z=300.f;
+    camLocation.Z=60.f;
     TopCameraComponent->SetRelativeLocation(camLocation); // 공보다 위
     TopCameraComponent->SetRelativeRotation(FRotator(-90.f, 0.f, 0.f)); // 아래를 향함
     //TopCameraComponent->SetFieldOfView(23);
@@ -43,7 +43,7 @@ ATopCameraActor::ATopCameraActor()
    //TopCameraComponent->SetFieldOfView(27.f);
 
  // (Optional) 수동 초점 거리
-	TopCameraComponent->FocusSettings.FocusMethod = ECameraFocusMethod::Tracking;
+	/*TopCameraComponent->FocusSettings.FocusMethod = ECameraFocusMethod::Tracking;
 
     AActor* targetActor = Cast<AGolfBall>(UGameplayStatics::GetActorOfClass(GetWorld(), AGolfBall::StaticClass()));
     if (!targetActor)
@@ -51,7 +51,7 @@ ATopCameraActor::ATopCameraActor()
         UE_LOG(LogTemp, Warning, TEXT("Can not find AGolfBall Actor."));
         return;
     }
-	TopCameraComponent->FocusSettings.TrackingFocusSettings.ActorToTrack= targetActor;
+	TopCameraComponent->FocusSettings.TrackingFocusSettings.ActorToTrack = targetActor;*/
 
 }
 
@@ -71,7 +71,7 @@ void ATopCameraActor::SetTarget(AGolfBall* Target)
     if (TargetActor)
     {
         //FVector BallLocation = TargetActor->GetActorLocation();
-        SetActorLocation(FVector(BALL_LOCATION.X, BALL_LOCATION.Y, BALL_LOCATION.Z+50.f));//300.f));
+        SetActorLocation(FVector(BALL_LOCATION.X, BALL_LOCATION.Y, BALL_LOCATION.Z+60.f));//300.f));
 
         TopCameraComponent->FocusSettings.FocusMethod = ECameraFocusMethod::Tracking;
         TopCameraComponent->FocusSettings.TrackingFocusSettings.ActorToTrack = Target;
