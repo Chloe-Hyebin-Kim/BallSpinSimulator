@@ -131,18 +131,6 @@ void AGolfBall::SetIsSpin(bool bTmp/* = false*/)
 	{
 		if (bSpin){
 			bSpin =false;
-
-			bSpin = false;//무조건 스핀 끄기
-
-			m_SpinAxisAsVec = FVector::UpVector;//(로컬 Z축 == 0,0,1)
-			m_SpinAxisAsRot = FRotationMatrix::MakeFromZ(m_SpinAxisAsVec).Rotator();
-			SetActorRotation(m_SpinAxisAsRot);
-
-			// FRotationMatrix
-			m_SpinAxisAsVec = m_InputSpinAxis.GetSafeNormal();// 반드시 정규화
-			m_SpinAxisAsRot = FRotationMatrix::MakeFromZ(m_SpinAxisAsVec).Rotator();// Z축을 주어진 방향에 정렬
-			SetActorRotation(m_SpinAxisAsRot);
-
 		}
 	} 
 	else //default
