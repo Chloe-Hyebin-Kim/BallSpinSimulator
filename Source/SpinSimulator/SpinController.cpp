@@ -174,15 +174,6 @@ void ASpinController::OnCaptureCameraView(const TArray<FString>& Args)
 {
     UE_LOG(LogTemp, Log, TEXT("OnCaptureCameraView."));
     //ControlledBallActor->CaptureFrame();
-       
-    // AFrameCapture 자동 검색     
-    AFrameCapture* CaptureActor = Cast<AFrameCapture>(UGameplayStatics::GetActorOfClass(GetWorld(), AFrameCapture::StaticClass()));
-    if (!CaptureActor)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("Can not find CaptureActor."));
-    }
-
-    ControlledBallActor->SetIsSpin(true);//무조건 스핀 끄기
 
    /*
      // AFrameCapture 자동 검색     
@@ -217,9 +208,18 @@ void ASpinController::OnCaptureCameraView(const TArray<FString>& Args)
 
     if (iMode==0)
     {
+        // AFrameCapture 자동 검색     
+        AFrameCapture* CaptureActor = Cast<AFrameCapture>(UGameplayStatics::GetActorOfClass(GetWorld(), AFrameCapture::StaticClass()));
+        if (!CaptureActor)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Can not find CaptureActor."));
+        }
+
         FVector vecInputSpinAxis = ControlledBallActor->GetInputSpinAxis();
         FVector vecBallSpinAxis = ControlledBallActor->GetBallSpinAxis();
         float f32DegreesPerFrame = ControlledBallActor->GetDegreesPerFrame();
+
+        ControlledBallActor->SetIsSpin(true);//무조건 스핀 끄기
 
         for (int i = 1; i <= FRAMECOUNT; ++i)
         {
@@ -235,7 +235,37 @@ void ASpinController::OnCaptureCameraView(const TArray<FString>& Args)
     } 
     else if(iMode == 1)
     {
+        FVector vecInputSpinAxis = ControlledBallActor->GetInputSpinAxis();
+        FVector vecBallSpinAxis = ControlledBallActor->GetBallSpinAxis();
+        float f32DegreesPerFrame = ControlledBallActor->GetDegreesPerFrame();
 
+        ControlledBallActor->SetIsSpin(true);//무조건 스핀 끄기
+
+        // 언리얼 좌표계 기준으로회전 순서는 반드시 Y축 -> X축으로 회전 적용!!!!
+
+        for (int i = 1; i <361; ++i)
+        {
+            float angleXDeg = i;
+
+            for (int j = 1; j < 361; ++j)
+            {
+                float angleYDeg = j;
+
+				float angleXRad = FMath::DegreesToRadians(angleXDeg);
+				float angleYRad = FMath::DegreesToRadians(angleYDeg);
+
+				float newX = FMath::Sin(angleYRad);
+				float newY = -FMath::Sin(angleXRad) * FMath::Cos(angleYRad);
+				float newZ = FMath::Cos(angleXRad) * FMath::Cos(angleYRad);
+
+
+                FVector newSpinAxis(newX, newY, newZ);
+   
+                ControlledBallActor ->SetSpinAxis(newSpinAxis);
+
+                UE_LOG(LogTemp, Log, TEXT("[ X ] : %d deg , [ Y ] : %d deg      ( %f, %f, %f )"), i, j, newX, newY, newZ);
+            }
+        }
 
 
     }
