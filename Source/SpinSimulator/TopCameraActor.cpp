@@ -33,14 +33,14 @@ ATopCameraActor::ATopCameraActor()
 	TopCameraComponent->LensSettings.MaxFocalLength = 100.f;
 	TopCameraComponent->LensSettings.MinFStop = 2.8f;
 	TopCameraComponent->LensSettings.MaxFStop = 10.f;
-	//TopCameraComponent->SetFieldOfView(27.f);
+
 
 
    TopCameraComponent->CurrentFocalLength = 100.f; //39.0f;
    TopCameraComponent->CurrentAperture =6.0f;
    TopCameraComponent->CurrentFocusDistance = 50.f;
-   TopCameraComponent->CurrentHorizontalFOV = 5.72481f;//27.f;
-     
+   //TopCameraComponent->CurrentHorizontalFOV = 5.72481f;//27.f;
+   //TopCameraComponent->SetFieldOfView(27.f);
 
  // (Optional) 수동 초점 거리
 	TopCameraComponent->FocusSettings.FocusMethod = ECameraFocusMethod::Tracking;
