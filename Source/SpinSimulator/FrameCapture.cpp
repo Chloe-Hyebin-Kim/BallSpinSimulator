@@ -9,48 +9,49 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 
-#include "GolfBall.h"
+#include "SpinSimulator.h"
+#include "TopCameraActor.h"
+
+
 
 AFrameCapture::AFrameCapture()
 {
+    PrimaryActorTick.bCanEverTick = false;
 
-		PrimaryActorTick.bCanEverTick = false;
-
-		// 컴포넌트 생성
-		SceneCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("SceneCapture"));
-		RootComponent = SceneCapture;
+    // 컴포넌트 생성
+    SceneCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("SceneCapture"));
+    RootComponent = SceneCapture;
 
 
-		static ConstructorHelpers::FObjectFinder<UTextureRenderTarget2D> renderTarget(TEXT("GameStarterContent/Blueprints/SpinRenderTarget2D"));
+    static ConstructorHelpers::FObjectFinder<UTextureRenderTarget2D> renderTarget(TEXT("/Game/StarterContent/Blueprints/SpinRenderTarget2D"));
 
-		if (renderTarget.Succeeded())
-			RenderTarget = renderTarget.Object;
+    if (renderTarget.Succeeded()) 
+        RenderTarget = renderTarget.Object;
 
-		if (RenderTarget)
-		{
-			RenderTarget->InitAutoFormat(512, 512);
-			RenderTarget->RenderTargetFormat = RTF_RGBA8;
-			RenderTarget->UpdateResourceImmediate(true);
+    if (RenderTarget)
+    {  
+        // 렌더타겟 포맷
+        RenderTarget->InitAutoFormat(512, 512);
+        RenderTarget->RenderTargetFormat = RTF_RGBA16f;
+        RenderTarget->ClearColor = FLinearColor::Black;
+        RenderTarget->UpdateResourceImmediate(true);
 
-			SceneCapture->TextureTarget = RenderTarget;
-			SceneCapture->CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
-			SceneCapture->bCaptureEveryFrame = false; // 매 프레임 캡처할지 여부
-			SceneCapture->bCaptureOnMovement = false; // 위치,회전 변화 시 자동 캡처 여부
-		}
+        SceneCapture->TextureTarget = RenderTarget;
+        SceneCapture->CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
+        SceneCapture->bCaptureEveryFrame = false; // 매 프레임 캡처할지 여부
+        SceneCapture->bCaptureOnMovement = false; // 위치,회전 변화 시 자동 캡처 여부
+    }
 
-		//// RenderTarget 객체 생성
-		//RenderTarget = NewObject<UTextureRenderTarget2D>(this, UTextureRenderTarget2D::StaticCla  ());
-		//RenderTarget->InitAutoFormat(1920, 1080);
-		//RenderTarget->RenderTargetFormat = RTF_RGBA8;
-		//RenderTarget->UpdateResourceImmediate(true);
+    //// RenderTarget 객체 생성
+    //RenderTarget = NewObject<UTextureRenderTarget2D>(this, UTextureRenderTarget2D::StaticClass());
+    //RenderTarget->InitAutoFormat(1920, 1080);
+    //RenderTarget->RenderTargetFormat = RTF_RGBA8;
+    //RenderTarget->UpdateResourceImmediate(true);
 
-		//SceneCapture->TextureTarget = RenderTarget;
-		//SceneCapture->CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
-		//SceneCapture->bCaptureEveryFrame = false; // 매 프레임 캡처할지 여부
-		//SceneCapture->bCaptureOnMovement = false; // 위치,회전 변화 시 자동 캡처 여부
-   
-   
-   
+    //SceneCapture->TextureTarget = RenderTarget;
+    //SceneCapture->CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
+    //SceneCapture->bCaptureEveryFrame = false; // 매 프레임 캡처할지 여부
+    //SceneCapture->bCaptureOnMovement = false; // 위치,회전 변화 시 자동 캡처 여부
 }
 
 AFrameCapture::~AFrameCapture()
@@ -61,31 +62,60 @@ AFrameCapture::~AFrameCapture()
 void AFrameCapture::BeginPlay()
 {
     Super::BeginPlay();
-    // 초기화 필요 시 여기서
-
-    if (SceneCapture && GetWorld())
+   
+    if (!RenderTarget)
     {
-        SceneCapture->ProjectionType = ECameraProjectionMode::Perspective;
-        SceneCapture->FOVAngle = 27.f; // TopCameraActor와 동일
-        SceneCapture->OrthoWidth = 512.f;
-
-        AActor* BallActor = UGameplayStatics::GetActorOfClass(GetWorld(), AGolfBall::StaticClass());
-        if (BallActor)
-        {
-            FVector BallLocation = BallActor->GetActorLocation();
-            // 카메라와 동일한 위치 및 회전 적용
-            FVector CaptureLocation = BallLocation + FVector(0.f, 0.f, 50.f); 
-            FRotator CaptureRotation = FRotator(-90.f, 0.f, 0.f); // 아래로 바라봄
-        
-            SceneCapture->SetWorldLocation(CaptureLocation);
-            SceneCapture->SetWorldRotation(CaptureRotation);
-
-            FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(CaptureLocation, BallLocation);
-            SceneCapture->SetWorldRotation(LookAtRotation);
-
-            UE_LOG(LogTemp, Log, TEXT("SceneCapture Location/Rotation set to look at ball"));
-        }
+        UE_LOG(LogTemp, Error, TEXT("RenderTarget is NULL!"));
+        return;
     }
+
+    if (!SceneCapture)
+    {
+        UE_LOG(LogTemp, Error, TEXT("SceneCapture is NULL!"));
+        return;
+    }
+
+    ATopCameraActor* TopCam = Cast<ATopCameraActor>(UGameplayStatics::GetActorOfClass(GetWorld(), ATopCameraActor::StaticClass()));
+    if (TopCam)
+    {
+        FVector CamLoc = TopCam->GetActorLocation();
+        FRotator CamRot = TopCam->GetActorRotation();
+
+        //FVector CaptureLocation = BALL_LOCATION + FVector(0.f, 0.f, 45.f);
+       // SceneCapture->SetWorldLocation(CaptureLocation);
+       // SceneCapture->SetWorldRotation(FRotator(-90.f, 0.f, 0.f)); // 정면에서 아래를 향하도록
+
+        SceneCapture->SetWorldLocation(CamLoc);
+        SceneCapture->SetWorldRotation(CamRot);
+
+        SceneCapture->FOVAngle = TopCam->TopCameraComponent->FieldOfView;
+
+        UE_LOG(LogTemp, Warning, TEXT("[SceneCapture Sync] Location = %s, Rotation = %s, FOV = %.2f"), *CamLoc.ToString(), *CamRot.ToString(), SceneCapture->FOVAngle);
+
+
+        float FocalLength = TopCam->TopCameraComponent->CurrentFocalLength;
+        float SensorWidth = TopCam->TopCameraComponent->Filmback.SensorWidth;
+
+        float FOV = FMath::RadiansToDegrees(2.0f * FMath::Atan(SensorWidth / (2.0f * FocalLength)));
+        SceneCapture->FOVAngle = FOV;
+
+        UE_LOG(LogTemp, Warning, TEXT("Filmback & Focal Length : FOV = %.2f"), *CamLoc.ToString(), *CamRot.ToString(), SceneCapture->FOVAngle);
+    }
+
+    // 렌더타겟 포맷
+    RenderTarget->RenderTargetFormat = RTF_RGBA16f;
+    RenderTarget->ClearColor = FLinearColor::Black;
+    RenderTarget->UpdateResourceImmediate(true);
+
+    // ShowFlags 활성화
+    SceneCapture->ShowFlags.SetPostProcessing(true);
+    SceneCapture->ShowFlags.SetTonemapper(true);
+    SceneCapture->ShowFlags.SetLighting(true); 
+    SceneCapture->ShowFlags.SetBloom(true);
+    SceneCapture->ShowFlags.SetAmbientOcclusion(true);
+    SceneCapture->ShowFlags.SetGlobalIllumination(true);
+
+
 }
 
 void AFrameCapture::CaptureAndSave(int idx, FVector spinAxis)
@@ -103,7 +133,7 @@ void AFrameCapture::CaptureAndSave(int idx, FVector spinAxis)
     }
 
 	SceneCapture->CaptureScene();// 수동 캡처
-	FString FileName = FString::Printf(TEXT("RotatedSpinAxis_%.4f_%.4f_%.4f_Frame%02d.png"), spinAxis.X, spinAxis.Y, spinAxis.Z, idx);
+	FString FileName = FString::Printf(TEXT("RotatedSpinAxis_%d,%d,%d_Frame%02d.png"), (int)spinAxis.X, (int)spinAxis.Y, (int)spinAxis.Z, idx);
 	SaveRenderTargetToPNG(FileName);
 }
 

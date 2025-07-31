@@ -160,11 +160,6 @@ void AGolfBall::SetSpinAxis(const FVector& NewSpinAxis)
 	m_SpinAxisAsRot = FRotationMatrix::MakeFromZ(m_SpinAxisAsVec).Rotator();// Z축을 주어진 방향에 정렬
 	m_SpinAxisAsQuat = FQuat::FindBetweenNormals(FVector(0.f, 0.f, 1.f), m_SpinAxisAsVec);//FQuat 직접 회전 (차분 회전량만 적용하려면)
 
-	FQuat actorQuat = GetActorQuat();
-	FQuat newQuat1 = m_SpinAxisAsQuat * GetActorQuat();
-	FQuat newQuat2 = m_SpinAxisAsRot.Quaternion();
-
-
 	UE_LOG(LogTemp, Log, TEXT("Normalized SpinAxis (%f, %f, %f)"), m_SpinAxisAsVec.X, m_SpinAxisAsVec.Y, m_SpinAxisAsVec.Z);
 
 	AlignToSpinAxis();
@@ -172,9 +167,9 @@ void AGolfBall::SetSpinAxis(const FVector& NewSpinAxis)
 
 void AGolfBall::AlignToSpinAxis()
 {	
-	FRotator zRotation = FRotationMatrix::MakeFromZ(FVector(0.f, 0.f, 1.f)).Rotator();//(Z축 == 0,0,1)
-	SetActorRotation(zRotation);//초기화
-	SetActorRotation(m_SpinAxisAsRot);
+	//FRotator zRotation = FRotationMatrix::MakeFromZ(FVector(0.f, 0.f, 1.f)).Rotator();//(Z축 == 0,0,1)
+	//SetActorRotation(zRotation);//초기화
+	//SetActorRotation(m_SpinAxisAsRot);
 	
 	//SetActorRotation(m_SpinAxisAsQuat * GetActorQuat());//FQuat 직접 회전 (차분 회전량만 적용하려면)
 
@@ -185,21 +180,18 @@ void AGolfBall::AlignToSpinAxis()
 	m_BallUp = GetActorUpVector();
 
 	///////////////////////
+	/* OLD */
+	//FVector(0.f, 0.f, 1.f)으로 정렬
+	m_SpinAxisAsVec = FVector::UpVector;//(로컬 Z축 == 0,0,1)
+	m_SpinAxisAsRot = FRotationMatrix::MakeFromZ(m_SpinAxisAsVec).Rotator();
+	SetActorRotation(m_SpinAxisAsRot);
+	//이후에 다시 축 세팅
+	m_SpinAxisAsVec = m_InputSpinAxis.GetSafeNormal();// 반드시 정규화
+	m_SpinAxisAsRot = FRotationMatrix::MakeFromZ(m_SpinAxisAsVec).Rotator();// Z축을 주어진 방향에 정렬
+	SetActorRotation(m_SpinAxisAsRot);
 
-	// 회전 쿼터니언 생성
-	//FQuat RotX = FQuat(FVector(1, 0, 0), FMath::DegreesToRadians(45));
-	//FQuat RotY = FQuat(FVector(0, 1, 0), FMath::DegreesToRadians(45));
-	//FQuat CombinedRot = RotY * RotX;
+	m_SpinAxisAsQuat = FQuat::FindBetweenNormals(FVector(0.f, 0.f, 1.f), m_SpinAxisAsVec);
 
-	//// 회전된 Z축
-	//FVector RotatedAxis = CombinedRot.RotateVector(FVector(0, 0, 1));
-
-	//// 출력
-	//UE_LOG(LogTemp, Log, TEXT("[결과]"));
-	//UE_LOG(LogTemp, Log, TEXT("FVector 축 방향: (%f, %f, %f)"), RotatedAxis.X, RotatedAxis.Y, RotatedAxis.Z);
-	//UE_LOG(LogTemp, Log, TEXT("FQuat 회전: (X=%f, Y=%f, Z=%f, W=%f)"), CombinedRot.X, CombinedRot.Y, CombinedRot.Z, CombinedRot.W);
-	//FRotator Euler = CombinedRot.Rotator();
-	//UE_LOG(LogTemp, Log, TEXT("FRotator 오일러: Pitch=%f, Yaw=%f, Roll=%f"), Euler.Pitch, Euler.Yaw, Euler.Roll);
 }
 
 

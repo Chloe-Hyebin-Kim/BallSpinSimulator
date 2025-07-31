@@ -2,7 +2,7 @@
 
 
 #include "SpinSimulator.h"
-
+#include "GolfBall.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -21,29 +21,38 @@ ATopCameraActor::ATopCameraActor()
     camLocation.Z=300.f;
     TopCameraComponent->SetRelativeLocation(camLocation); // 공보다 위
     TopCameraComponent->SetRelativeRotation(FRotator(-90.f, 0.f, 0.f)); // 아래를 향함
-    TopCameraComponent->SetFieldOfView(23);
+    //TopCameraComponent->SetFieldOfView(23);
 
 
-
-
+    // Filmback 센서 크기 설정 (mm)
+    TopCameraComponent->Filmback.SensorWidth = 16.f; //56f;
+    TopCameraComponent->Filmback.SensorHeight = 16.f; //12.63f;
     
-    // 실물 카메라 F4 대응
-	TopCameraComponent->LensSettings.MinFStop = 1.2f;
-	TopCameraComponent->SetFieldOfView(27.f);
-    // 센서 크기 설정 (mm)
-	TopCameraComponent->Filmback.SensorWidth = 14.56f;
-	TopCameraComponent->Filmback.SensorHeight = 12.63f;
+    // LensSettings 
+	TopCameraComponent->LensSettings.MinFocalLength = 100.f;
+	TopCameraComponent->LensSettings.MaxFocalLength = 100.f;
+	TopCameraComponent->LensSettings.MinFStop = 2.8f;
+	TopCameraComponent->LensSettings.MaxFStop = 10.f;
+	//TopCameraComponent->SetFieldOfView(27.f);
 
-    // 렌즈 초점 거리 설정
-   TopCameraComponent->CurrentFocalLength = 39.0f;
 
-   // 조리개 등 추가 설정
-   TopCameraComponent->CurrentAperture = 4.0f;
+   TopCameraComponent->CurrentFocalLength = 100.f; //39.0f;
+   TopCameraComponent->CurrentAperture =6.0f;
+   TopCameraComponent->CurrentFocusDistance = 50.f;
+   TopCameraComponent->CurrentHorizontalFOV = 5.72481f;//27.f;
      
 
  // (Optional) 수동 초점 거리
-	TopCameraComponent->FocusSettings.FocusMethod = ECameraFocusMethod::Manual;
-	TopCameraComponent->FocusSettings.ManualFocusDistance = 1000.0f;
+	TopCameraComponent->FocusSettings.FocusMethod = ECameraFocusMethod::Tracking;
+
+    AActor* targetActor = Cast<AGolfBall>(UGameplayStatics::GetActorOfClass(GetWorld(), AGolfBall::StaticClass()));
+    if (!targetActor)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Can not find AGolfBall Actor."));
+        return;
+    }
+	TopCameraComponent->FocusSettings.TrackingFocusSettings.ActorToTrack= targetActor;
+
 }
 
 

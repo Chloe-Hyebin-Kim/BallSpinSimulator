@@ -77,33 +77,18 @@ void ASpinSimulatorGameModeBase::BeginPlay()
     }
 
 
-
-
-
-    // 포스트 프로세스: NIR 흉내
-    //APostProcessVolume* PPVolume = GetWorld()->SpawnActor<APostProcessVolume>(FVector::ZeroVector, FRotator::ZeroRotator);
+    //APostProcessVolume* PPVolume = GetWorld()->SpawnActor<APostProcessVolume>(APostProcessVolume::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator);
     //if (PPVolume)
     //{
-    //    PPVolume->bUnbound = true;
+    //    PPVolume->bUnbound = true; // 월드 전역에 적용됨
 
-    //    //흑백(IR 시뮬레이션. 근적외선 느낌)
-    //    PPVolume->Settings.bOverride_ColorSaturation = true;
-    //    PPVolume->Settings.ColorSaturation = FVector4(0.f, 0.f, 0.f, 0.f); // RGB = 0 → 흑백
-
-    //    //톤 매핑 제거
-    //    PPVolume->Settings.bOverride_ToneCurveAmount = true;
-    //    PPVolume->Settings.ToneCurveAmount = 0.f;
-
-
-    //    // 노출 수동 설정
+    //    // 자동 노출 제거
     //    PPVolume->Settings.bOverride_AutoExposureMethod = true;
     //    PPVolume->Settings.AutoExposureMethod = EAutoExposureMethod::AEM_Manual;
+
     //    PPVolume->Settings.bOverride_AutoExposureBias = true;
-    //    PPVolume->Settings.AutoExposureBias = -1.0f;
+    //    PPVolume->Settings.AutoExposureBias = 1.5f; // 1.0~2.0 사이에서 적절히 조정
 
-    //    // Bloom 제거
-    //    PPVolume->Settings.bOverride_BloomIntensity = true;
-    //    PPVolume->Settings.BloomIntensity = 0.f;
+    //    UE_LOG(LogTemp, Log, TEXT("Global PostProcessVolume created with Manual Exposure."));
     //}
-
 }
