@@ -36,6 +36,7 @@ public:
 	void DrawBallSpinAxis();
 	void DrawWorldGizmoAxis();
 	void CaptureFrame();
+	void AllCombinationsOfRotateAxis(FVector newSpinAxis);
 	void RotateBallForFrameCapture(int idx);
 
 public:

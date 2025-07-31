@@ -21,6 +21,7 @@ public:
 
     UFUNCTION(BlueprintCallable)
     void CaptureAndSave(int idx, FVector spinAxis);
+    void CaptureCombinations(int pitchDeg, int yawDeg, FVector spinAxis );
 
 private:
     void SaveRenderTargetToPNG(const FString& FileName);

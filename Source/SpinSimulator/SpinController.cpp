@@ -202,25 +202,21 @@ void ASpinController::OnCaptureCameraView(const TArray<FString>& Args)
     }
     */
 
-   
+    AFrameCapture* CaptureActor = Cast<AFrameCapture>(UGameplayStatics::GetActorOfClass(GetWorld(), AFrameCapture::StaticClass()));
+    if (!CaptureActor)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Can not find CaptureActor."));
+    }
+
+    ControlledBallActor->SetIsSpin(true);//무조건 스핀 끄기
+
     int iMode = 0;//뷰어버전
     iMode=1;//AI버전
 
     if (iMode==0)
     {
         // AFrameCapture 자동 검색     
-        AFrameCapture* CaptureActor = Cast<AFrameCapture>(UGameplayStatics::GetActorOfClass(GetWorld(), AFrameCapture::StaticClass()));
-        if (!CaptureActor)
-        {
-            UE_LOG(LogTemp, Warning, TEXT("Can not find CaptureActor."));
-        }
-
-        FVector vecInputSpinAxis = ControlledBallActor->GetInputSpinAxis();
-        FVector vecBallSpinAxis = ControlledBallActor->GetBallSpinAxis();
-        float f32DegreesPerFrame = ControlledBallActor->GetDegreesPerFrame();
-
-        ControlledBallActor->SetIsSpin(true);//무조건 스핀 끄기
-
+  
         for (int i = 1; i <= FRAMECOUNT; ++i)
         {
             int idx = i;
@@ -228,6 +224,8 @@ void ASpinController::OnCaptureCameraView(const TArray<FString>& Args)
             FTimerDelegate delayCommandDelegate = FTimerDelegate::CreateLambda([=]()
                 {
                     ControlledBallActor->RotateBallForFrameCapture(idx);
+                     
+                    FVector vecInputSpinAxis = ControlledBallActor->GetInputSpinAxis();
                     CaptureActor->CaptureAndSave(idx, vecInputSpinAxis);
                 });
             GetWorld()->GetTimerManager().SetTimer(timerHandle, delayCommandDelegate, 3.5f * i, false);
@@ -235,37 +233,49 @@ void ASpinController::OnCaptureCameraView(const TArray<FString>& Args)
     } 
     else if(iMode == 1)
     {
-        FVector vecInputSpinAxis = ControlledBallActor->GetInputSpinAxis();
-        FVector vecBallSpinAxis = ControlledBallActor->GetBallSpinAxis();
-        float f32DegreesPerFrame = ControlledBallActor->GetDegreesPerFrame();
-
-        ControlledBallActor->SetIsSpin(true);//무조건 스핀 끄기
-
+        int i = 1;
         // 언리얼 좌표계 기준으로회전 순서는 반드시 Y축 -> X축으로 회전 적용!!!!
-
-        for (int i = 1; i <361; ++i)
+        for (int pitchDeg = 1; pitchDeg <= 180; ++pitchDeg) // X축 기울기 (Pitch)
         {
-            float angleXDeg = i;
-
-            for (int j = 1; j < 361; ++j)
+            for (int yawDeg = 1; yawDeg <= 360; ++yawDeg) // 수평 회전 각도 (Yaw)
             {
-                float angleYDeg = j;
+                // 회전된 방향 벡터 구하기
+                FRotator rotation(pitchDeg, yawDeg, 0);  // Pitch = X축 기울기, Yaw = 수평 회전
+                FVector newSpinAxis = rotation.RotateVector(FVector(0, 0, 1));
+                
+                //////////////////////////////////////////////////
 
-				float angleXRad = FMath::DegreesToRadians(angleXDeg);
-				float angleYRad = FMath::DegreesToRadians(angleYDeg);
+                //float angleXRad = FMath::DegreesToRadians(pitchDeg);
+                //float angleYRad = FMath::DegreesToRadians(yawDeg);
 
-				float newX = FMath::Sin(angleYRad);
-				float newY = -FMath::Sin(angleXRad) * FMath::Cos(angleYRad);
-				float newZ = FMath::Cos(angleXRad) * FMath::Cos(angleYRad);
+                //float newX = FMath::Sin(angleYRad);
+                //float newY = -FMath::Sin(angleXRad) * FMath::Cos(angleYRad);
+                //float newZ = FMath::Cos(angleXRad) * FMath::Cos(angleYRad);
+                //FVector newSpinAxis = FVector(newX, newY, newZ);
 
+                //ControlledBallActor->AllCombinationsOfRotateAxis(newSpinAxis);
+                //CaptureActor->CaptureCombinations(pitchDeg, yawDeg, newSpinAxis);
 
-                FVector newSpinAxis(newX, newY, newZ);
-   
-                ControlledBallActor ->SetSpinAxis(newSpinAxis);
+                //// 출력 또는 저장
+                //UE_LOG(LogTemp, Log, TEXT("[ Pitch = %3d, Yaw = %3d ]  SpinAxis = (%.6f, %.6f, %.6f)"), pitchDeg, yawDeg, newSpinAxis.X, newSpinAxis.Y, newSpinAxis.Z);
 
-                UE_LOG(LogTemp, Log, TEXT("[ X ] : %d deg , [ Y ] : %d deg      ( %f, %f, %f )"), i, j, newX, newY, newZ);
+                //////////////////////////////////////////////////
+       
+                FTimerHandle timerHandle;
+                FTimerDelegate delayCommandDelegate = FTimerDelegate::CreateLambda([=]()
+                    {
+                        ControlledBallActor->AllCombinationsOfRotateAxis(newSpinAxis);
+                        CaptureActor->CaptureCombinations(pitchDeg, yawDeg, newSpinAxis);
+
+                        // 출력 또는 저장
+                        UE_LOG(LogTemp, Log, TEXT("[ Pitch = %3d, Yaw = %3d ]  SpinAxis = (%.6f, %.6f, %.6f)"), pitchDeg, yawDeg, newSpinAxis.X, newSpinAxis.Y, newSpinAxis.Z);
+                    });
+                GetWorld()->GetTimerManager().SetTimer(timerHandle, delayCommandDelegate, 1.f * i, false);
+
+                i++;
             }
         }
+       
 
 
     }

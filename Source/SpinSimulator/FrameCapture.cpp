@@ -126,6 +126,26 @@ void AFrameCapture::CaptureAndSave(int idx, FVector spinAxis)
 	SaveRenderTargetToPNG(FileName);
 }
 
+void AFrameCapture::CaptureCombinations(int pitchDeg, int yawDeg, FVector spinAxis)
+{
+    if (!RenderTarget)
+    {
+        UE_LOG(LogTemp, Error, TEXT("RenderTarget is NULL!"));
+        return;
+    }
+
+    if (!SceneCapture)
+    {
+        UE_LOG(LogTemp, Error, TEXT("SceneCapture is NULL!"));
+        return;
+    }
+
+    SceneCapture->CaptureScene();// ¼öµ¿ Ä¸Ã³
+    //FString FileName = FString::Printf(TEXT("(%.6f, %.6f, %.6f)_%3d_%3d.png"), spinAxis.X, spinAxis.Y, spinAxis.Z, pitchDeg, yawDeg);
+    FString FileName = FString::Printf(TEXT("%d_%d.png"), pitchDeg, yawDeg);
+    SaveRenderTargetToPNG(FileName);
+}
+
 void AFrameCapture::SaveRenderTargetToPNG(const FString& FileName)
 {
     FTextureRenderTargetResource* RTResource = RenderTarget->GameThread_GetRenderTargetResource();

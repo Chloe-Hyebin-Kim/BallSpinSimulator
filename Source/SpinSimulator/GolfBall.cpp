@@ -101,6 +101,9 @@ void AGolfBall::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	//Spin Axis는 Pitch + Yaw로 결정하고,
+	//그 축을 따라 회전시키는 건 Roll(또는 FQuat)이 처리한다.
+	
 	if (bSpin)
 	{
 		// 월드 좌표계에서 회전축 계산 (로컬 축 기준)
@@ -206,7 +209,53 @@ void AGolfBall::AlignToSpinAxis()
 
 }
 
+void AGolfBall::AllCombinationsOfRotateAxis(FVector newSpinAxis)
+{
+	FRotator zRotation = FRotationMatrix::MakeFromZ(FVector(0.f, 0.f, 1.f)).Rotator();//(Z축 == 0,0,1)
+	SetActorRotation(zRotation);//초기화
 
+	FVector normSpinAxis = newSpinAxis.GetSafeNormal();// 반드시 정규화
+	FRotator newRotator = FRotationMatrix::MakeFromZ(normSpinAxis).Rotator();// Z축을 주어진 방향에 정렬
+	SetActorRotation(newRotator);
+
+
+
+
+	/*
+	 for (int pitchDeg = 0; pitchDeg <= 180; ++pitchDeg) // X축 기울기 (Pitch)
+	{
+		for (int yawDeg = 0; yawDeg < 360; ++yawDeg) // 수평 회전 각도 (Yaw)
+		{
+			// 회전된 방향 벡터 구하기
+			FRotator Rotation(pitchDeg, yawDeg, 0);  // Pitch = X축 기울기, Yaw = 수평 회전
+			FVector RotatedVector = Rotation.RotateVector(FVector(0, 0, 1));
+
+			// 출력 또는 저장
+			UE_LOG(LogTemp, Log, TEXT("[ Pitch = %3d, Yaw = %3d ] -> SpinAxis = (%.6f, %.6f, %.6f)"), pitchDeg, yawDeg, RotatedVector.X, RotatedVector.Y, RotatedVector.Z);
+
+			//////////////////////////////////////////////////
+
+			float angleXRad = FMath::DegreesToRadians(pitchDeg);
+			float angleYRad = FMath::DegreesToRadians(yawDeg);
+
+			float newX = FMath::Sin(angleYRad);
+			float newY = -FMath::Sin(angleXRad) * FMath::Cos(angleYRad);
+			float newZ = FMath::Cos(angleXRad) * FMath::Cos(angleYRad);
+
+			UE_LOG(LogTemp, Log, TEXT("[ X : %3d deg , Y : %3d deg ]   ->   ( %.6f, %.6f, %.6f )"), pitchDeg, yawDeg, newX, newY, newZ);
+
+			FRotator zRotation = FRotationMatrix::MakeFromZ(FVector(0.f, 0.f, 1.f)).Rotator();//(Z축 == 0,0,1)
+			SetActorRotation(zRotation);//초기화
+			
+			FVector newSpinAxis(newX, newY, newZ);
+			FVector normSpinAxis = newSpinAxis.GetSafeNormal();// 반드시 정규화
+			FRotator newRotator = FRotationMatrix::MakeFromZ(normSpinAxis).Rotator();// Z축을 주어진 방향에 정렬
+			SetActorRotation(newRotator);
+
+		}
+	}
+	*/
+}
 
 
 void AGolfBall::RotateBallForFrameCapture(int idx)
