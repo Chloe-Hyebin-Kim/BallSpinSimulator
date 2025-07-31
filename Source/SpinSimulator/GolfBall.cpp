@@ -29,13 +29,13 @@ AGolfBall::AGolfBall()
 
 		GolfBallMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TitleistBall"));
 		//RootComponent = GolfBallMesh;
-		static ConstructorHelpers::FObjectFinder<UStaticMesh> ballMeshAsset(TEXT("/Game/StarterContent/SM_TitleistBall"));
-		if (ballMeshAsset.Object != nullptr)
+		static ConstructorHelpers::FObjectFinder<UStaticMesh> meshTitleistBall(TEXT("/Game/StarterContent/SM_TitleistBall"));
+		if (meshTitleistBall.Object != nullptr)
 		{
 
 			GolfBallMesh->SetupAttachment(RootComponent);
 
-			GolfBallMesh->SetStaticMesh(ballMeshAsset.Object);
+			GolfBallMesh->SetStaticMesh(meshTitleistBall.Object);
 			GolfBallMesh->SetWorldLocation(BALL_LOCATION);
 			GolfBallMesh->SetWorldRotation(m_SpinAxisAsRot);
 			GolfBallMesh->SetRelativeScale3D(FVector::OneVector);
@@ -44,7 +44,30 @@ AGolfBall::AGolfBall()
 
 			//SetVisible(true);
 		}
+
+
+		/*GolfzonParkBall = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SM_GolfzonParkBall"));
+		RootComponent = GolfBallMesh;
+		static ConstructorHelpers::FObjectFinder<UStaticMesh> meshParkBall(TEXT("/Game/StarterContent/SM_GolfzonPark_Ball"));
+		if (meshParkBall.Object != nullptr)
+		{
+
+			GolfzonParkBall->SetupAttachment(RootComponent);
+
+			GolfzonParkBall->SetStaticMesh(meshParkBall.Object);
+			GolfzonParkBall->SetWorldLocation(BALL_LOCATION+ FVector(0.f,50.f,0.f));
+			GolfzonParkBall->SetWorldRotation(m_SpinAxisAsRot);
+			GolfzonParkBall->SetRelativeScale3D(FVector::OneVector);
+			GolfzonParkBall->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			GolfzonParkBall->SetVisibility(true);
+		}*/
 	}
+
+
+
+
+
+
 	//SetActorTickEnabled(true);
 }
 
@@ -65,6 +88,8 @@ void AGolfBall::BeginPlay()
 
 	m_SpinAxisAsRot = FRotationMatrix::MakeFromZ(m_SpinAxisAsVec).Rotator();
 	SetActorRotation(m_SpinAxisAsRot);
+
+	FQuat actorQuat = GetActorQuat();
 }
 
 void AGolfBall::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -116,10 +141,11 @@ void AGolfBall::SetIsSpin(bool bTmp/* = false*/)
 
 void AGolfBall::SetSpinSpeed(float f32InputRPM)
 {
+	m_InputRPM = f32InputRPM;
 	m_DegreesPerSecond = f32InputRPM * RPM2DPS; //RPM -> DegreesPerSecond
 	m_DegreesPerFrame = m_DegreesPerSecond*DPS2FPS;//Degrees Per Second -> Degrees Per Frame
 
-	UE_LOG(LogTemp, Log, TEXT("Set Spin Speed: %f RPM (%f deg/s, %f deg/frame)"), f32InputRPM, m_DegreesPerSecond, m_DegreesPerFrame);
+	UE_LOG(LogTemp, Log, TEXT("Set Spin Speed: %f RPM (%f deg/s, %f deg/frame)"), m_InputRPM, m_DegreesPerSecond, m_DegreesPerFrame);
 }
 
 void AGolfBall::SetSpinAxis(const FVector& NewSpinAxis)
@@ -130,15 +156,14 @@ void AGolfBall::SetSpinAxis(const FVector& NewSpinAxis)
 		return;
 	}
 	m_InputSpinAxis = NewSpinAxis;
-
-	m_SpinAxisAsVec = FVector::UpVector;//(로컬 Z축 == 0,0,1)
-	m_SpinAxisAsRot = FRotationMatrix::MakeFromZ(m_SpinAxisAsVec).Rotator();
-	SetActorRotation(m_SpinAxisAsRot);
-
-	// FRotationMatrix
 	m_SpinAxisAsVec = NewSpinAxis.GetSafeNormal();// 반드시 정규화
 	m_SpinAxisAsRot = FRotationMatrix::MakeFromZ(m_SpinAxisAsVec).Rotator();// Z축을 주어진 방향에 정렬
-	SetActorRotation(m_SpinAxisAsRot);
+	m_SpinAxisAsQuat = FQuat::FindBetweenNormals(FVector(0.f, 0.f, 1.f), m_SpinAxisAsVec);//FQuat 직접 회전 (차분 회전량만 적용하려면)
+
+	FQuat actorQuat = GetActorQuat();
+	FQuat newQuat1 = m_SpinAxisAsQuat * GetActorQuat();
+	FQuat newQuat2 = m_SpinAxisAsRot.Quaternion();
+
 
 	UE_LOG(LogTemp, Log, TEXT("Normalized SpinAxis (%f, %f, %f)"), m_SpinAxisAsVec.X, m_SpinAxisAsVec.Y, m_SpinAxisAsVec.Z);
 
@@ -146,22 +171,18 @@ void AGolfBall::SetSpinAxis(const FVector& NewSpinAxis)
 }
 
 void AGolfBall::AlignToSpinAxis()
-{
-	if (m_SpinAxisAsVec.IsNearlyZero())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Axis is Nearly Zero."));
-		return;
-	}
+{	
+	FRotator zRotation = FRotationMatrix::MakeFromZ(FVector(0.f, 0.f, 1.f)).Rotator();//(Z축 == 0,0,1)
+	SetActorRotation(zRotation);//초기화
+	SetActorRotation(m_SpinAxisAsRot);
+	
+	//SetActorRotation(m_SpinAxisAsQuat * GetActorQuat());//FQuat 직접 회전 (차분 회전량만 적용하려면)
 
-	// FQuat 직접 회전 (차분 회전량만 적용하려면)
-	m_SpinAxisAsQuat = FQuat::FindBetweenNormals(FVector::UpVector, m_SpinAxisAsVec);//deltaRotation 
-	//SetActorRotation(m_SpinAxisAsQuat * GetActorQuat());
 
+	///////////////////////
 	m_BallForward = GetActorForwardVector();
 	m_BallRight = GetActorRightVector();
 	m_BallUp = GetActorUpVector();
-
-
 
 	///////////////////////
 
@@ -179,7 +200,6 @@ void AGolfBall::AlignToSpinAxis()
 	//UE_LOG(LogTemp, Log, TEXT("FQuat 회전: (X=%f, Y=%f, Z=%f, W=%f)"), CombinedRot.X, CombinedRot.Y, CombinedRot.Z, CombinedRot.W);
 	//FRotator Euler = CombinedRot.Rotator();
 	//UE_LOG(LogTemp, Log, TEXT("FRotator 오일러: Pitch=%f, Yaw=%f, Roll=%f"), Euler.Pitch, Euler.Yaw, Euler.Roll);
-
 }
 
 
@@ -209,6 +229,11 @@ void AGolfBall::CaptureFrame()
 	{
 		bSpin = false;//무조건 스핀 끄기
 
+		m_SpinAxisAsVec = FVector::UpVector;//(로컬 Z축 == 0,0,1)
+		m_SpinAxisAsRot = FRotationMatrix::MakeFromZ(m_SpinAxisAsVec).Rotator();
+		SetActorRotation(m_SpinAxisAsRot);
+
+		// FRotationMatrix
 		m_SpinAxisAsVec = m_InputSpinAxis.GetSafeNormal();// 반드시 정규화
 		m_SpinAxisAsRot = FRotationMatrix::MakeFromZ(m_SpinAxisAsVec).Rotator();// Z축을 주어진 방향에 정렬
 		SetActorRotation(m_SpinAxisAsRot);

@@ -20,7 +20,8 @@ AFrameCapture::AFrameCapture()
 
     static ConstructorHelpers::FObjectFinder<UTextureRenderTarget2D> renderTarget(TEXT("/Game/StarterContent/Blueprints/SpinRenderTarget2D"));
 
-    if (renderTarget.Succeeded()) RenderTarget = renderTarget.Object;
+    if (renderTarget.Succeeded()) 
+        RenderTarget = renderTarget.Object;
 
     if (RenderTarget)
     {

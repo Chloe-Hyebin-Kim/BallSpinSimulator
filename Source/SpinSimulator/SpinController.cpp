@@ -36,7 +36,7 @@ void ASpinController::BeginPlay()
             return;
         }
     }
-    //
+    
     ////카메라 탐색 후 뷰 설정
     // ATopCameraActor* TopCam =  Cast<ATopCameraActor>(UGameplayStatics::GetActorOfClass(GetWorld(), ATopCameraActor::StaticClass()));
     // if (TopCam)
@@ -44,7 +44,7 @@ void ASpinController::BeginPlay()
     //    SetViewTarget(TopCam);
     // }
 
-    // 콘솔 명령 등록
+    /* 콘솔 명령 등록 */ 
     
     // 공 회전 on/off
     IConsoleManager::Get().RegisterConsoleCommand(
@@ -108,7 +108,6 @@ void ASpinController::EndPlay(const EEndPlayReason::Type EndPlayReason)
     IConsoleManager::Get().UnregisterConsoleObject(TEXT("CaptureView"));
 
     Super::EndPlay(EndPlayReason);
-
 }
 
 
@@ -137,19 +136,6 @@ void ASpinController::OnSetSpinSpeedCommand(const TArray<FString>& Args)
 
     float f32InputRPM = FCString::Atof(*Args[0]);
     ControlledBallActor->SetSpinSpeed(f32InputRPM);
-    AGolfBall* GolfBallActor = Cast<AGolfBall>(UGameplayStatics::GetActorOfClass(GetWorld(), AGolfBall::StaticClass()));
-	
-    /*float f32InputRPM = FCString::Atof(*Args[0]);
-    ControlledBallActor->SetIsSpin(true);
-	 FTimerHandle timerHandle;
-	 FTimerDelegate delayCommandDelegate = FTimerDelegate::CreateLambda([&]()
-		 {
-			 ControlledBallActor->SetSpinSpeed(f32InputRPM);
-             ControlledBallActor->SetIsSpin();
-			 GetWorld()->GetTimerManager().ClearTimer(timerHandle);
-		 });
-	 GetWorld()->GetTimerManager().SetTimer(timerHandle, delayCommandDelegate, 4.f, false);*/
-     
 }
 
 void ASpinController::OnSetAxisCommand(const TArray<FString>& Args)
@@ -168,20 +154,6 @@ void ASpinController::OnSetAxisCommand(const TArray<FString>& Args)
 
     FVector InputAxis(FCString::Atof(*Args[0]), FCString::Atof(*Args[1]), FCString::Atof(*Args[2]));
     ControlledBallActor->SetSpinAxis(InputAxis);
-
-	/*
-    FVector InputAxis(FCString::Atof(*Args[0]), FCString::Atof(*Args[1]), FCString::Atof(*Args[2]));
-    ControlledBallActor->SetIsSpin(true);
-    FTimerHandle timerHandle;
-	FTimerDelegate delayCommandDelegate = FTimerDelegate::CreateLambda([&]()
-		{
-			ControlledBallActor->SetSpinAxis(InputAxis);
-            ControlledBallActor->SetIsSpin();
-			GetWorld()->GetTimerManager().ClearTimer(timerHandle);
-		});
-	GetWorld()->GetTimerManager().SetTimer(timerHandle, delayCommandDelegate, 4.f, false);
-    */
-
 }
 
 void ASpinController::OnShowOriginAxisCommand(const TArray<FString>& Args)
@@ -189,13 +161,6 @@ void ASpinController::OnShowOriginAxisCommand(const TArray<FString>& Args)
     UE_LOG(LogTemp, Log, TEXT("OnShowOriginAxisCommand."));
 
     ControlledBallActor->DrawWorldGizmoAxis();
-    /*FVector vecAxisX = BALL_LOCATION + 	FVector::XAxisVector * ARROWLENGTH;
-    FVector vecAxisY = BALL_LOCATION + FVector::YAxisVector * ARROWLENGTH;
-    FVector vecAxisZ = BALL_LOCATION + FVector::ZAxisVector* ARROWLENGTH;
-
-	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, vecAxisX, ARROWSIZE, XCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);
-	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, vecAxisY, ARROWSIZE, YCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);
-	DrawDebugDirectionalArrow(GetWorld(), BALL_LOCATION, vecAxisZ, ARROWSIZE, ZCOLOR, false, ARROWLIFE, ARROWDEPTH, ARROWTHICK);*/
 }
 
 void ASpinController::OnShowBallAxisCommand(const TArray<FString>& Args)
@@ -208,32 +173,21 @@ void ASpinController::OnShowBallAxisCommand(const TArray<FString>& Args)
 void ASpinController::OnCaptureCameraView(const TArray<FString>& Args)
 {
     UE_LOG(LogTemp, Log, TEXT("OnCaptureCameraView."));
-
+    ControlledBallActor->CaptureFrame();
    
 
-    // AFrameCapture 자동 검색     
-   // AFrameCapture* CaptureActor = Cast<AFrameCapture>(UGameplayStatics::GetActorOfClass(GetWorld(), AFrameCapture::StaticClass()));
-
-   /*
-     FVector vecInputSpinAxis = ControlledBallActor->GetInputSpinAxis();
+   
+    /*
+      // AFrameCapture 자동 검색     
+     AFrameCapture* CaptureActor = Cast<AFrameCapture>(UGameplayStatics::GetActorOfClass(GetWorld(), AFrameCapture::StaticClass()));
+    if (!CaptureActor)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Can not find CaptureActor."));
+    }
+   
+    FVector vecInputSpinAxis = ControlledBallActor->GetInputSpinAxis();
     FVector vecBallSpinAxis = ControlledBallActor->GetBallSpinAxis();
     float f32DegreesPerFrame = ControlledBallActor->GetDegreesPerFrame();
-
- 
-    TArray<AActor*> Found;
-    UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFrameCapture::StaticClass(), Found);
-
-    AFrameCapture* CaptureActor=nullptr;
-    if (Found.Num() > 0)
-    {
-        UE_LOG(LogTemp, Log, TEXT("Find Success."));
-
-        CaptureActor = Cast<AFrameCapture>(Found[0]);
-        if (!CaptureActor)
-        {
-            UE_LOG(LogTemp, Warning, TEXT("Can not find CaptureActor."));
-        }
-    }
 
     ControlledBallActor->SetIsSpin(true);//무조건 스핀 끄기
 
@@ -244,13 +198,14 @@ void ASpinController::OnCaptureCameraView(const TArray<FString>& Args)
         FTimerDelegate delayCommandDelegate = FTimerDelegate::CreateLambda([=]()
             {
                 ControlledBallActor->RotateBallForFrameCapture(idx);
-               // CaptureActor->CaptureAndSave(idx, vecInputSpinAxis);
+                CaptureActor->CaptureAndSave(idx, vecInputSpinAxis);
             });
         GetWorld()->GetTimerManager().SetTimer(timerHandle, delayCommandDelegate, 3.5f * i, false);
     }
-    */
+     */
+    
     
 
-    ControlledBallActor->CaptureFrame();
+  
 
 }

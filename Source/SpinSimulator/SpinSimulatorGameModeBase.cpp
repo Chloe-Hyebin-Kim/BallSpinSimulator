@@ -33,7 +33,6 @@ void ASpinSimulatorGameModeBase::BeginPlay()
 
     ASpinController* SpinController = Cast<ASpinController>(GetWorld()->GetFirstPlayerController());
     if (!SpinController) return;
-    
 
     FActorSpawnParameters SpawnParams;
     SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -41,8 +40,9 @@ void ASpinSimulatorGameModeBase::BeginPlay()
     // 공 스폰
     AGolfBall* BallActor = GetWorld()->SpawnActor<AGolfBall>(AGolfBall::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
 
-    // 카메라 스폰
-    ATopCameraActor* TopCam = GetWorld()->SpawnActor<ATopCameraActor>(ATopCameraActor::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+	// 카메라 스폰
+	ATopCameraActor* TopCam = GetWorld()->SpawnActor<ATopCameraActor>(ATopCameraActor::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+
     // 카메라 위치 지정
 	if (TopCam)
 	{

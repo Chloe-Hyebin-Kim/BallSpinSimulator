@@ -57,6 +57,8 @@ protected:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere,meta = (AllowPrivateAccess = "true"))
 		class UStaticMeshComponent* GolfBallMesh;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (AllowPrivateAccess = "true"))
+		class UStaticMeshComponent* GolfzonParkBall;
 
 
 	  FVector m_BallForward;
@@ -73,10 +75,10 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (AllowPrivateAccess = "true"))
 		FRotator m_SpinAxisAsRot;//m_rotSpinAxis;
 
-	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (AllowPrivateAccess = "true"))
-	float m_DegreesPerFrame;//(1프레임 당 회전 하는 각도)
-
+		float m_InputRPM;//(입력받은 RPM)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (AllowPrivateAccess = "true"))
+		float m_DegreesPerFrame;//(1프레임 당 회전 하는 각도)
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (AllowPrivateAccess = "true"))
 		float m_DegreesPerSecond;//(1초당 회전 하는 각도)
 };
