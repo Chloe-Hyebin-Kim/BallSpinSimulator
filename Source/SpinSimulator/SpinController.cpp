@@ -173,11 +173,11 @@ void ASpinController::OnShowBallAxisCommand(const TArray<FString>& Args)
 void ASpinController::OnCaptureCameraView(const TArray<FString>& Args)
 {
     UE_LOG(LogTemp, Log, TEXT("OnCaptureCameraView."));
-    ControlledBallActor->CaptureFrame();
+    //ControlledBallActor->CaptureFrame();
    
 
    
-    /*
+    
       // AFrameCapture 자동 검색     
      AFrameCapture* CaptureActor = Cast<AFrameCapture>(UGameplayStatics::GetActorOfClass(GetWorld(), AFrameCapture::StaticClass()));
     if (!CaptureActor)
@@ -202,7 +202,7 @@ void ASpinController::OnCaptureCameraView(const TArray<FString>& Args)
             });
         GetWorld()->GetTimerManager().SetTimer(timerHandle, delayCommandDelegate, 3.5f * i, false);
     }
-     */
+     
     
     
 

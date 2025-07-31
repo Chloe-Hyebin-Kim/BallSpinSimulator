@@ -10,6 +10,7 @@
 #include "SpinSimulator.h"
 #include "TopCameraActor.h"
 #include "SpinController.h"
+#include "FrameCapture.h"
 
 
 
@@ -65,6 +66,18 @@ void ASpinSimulatorGameModeBase::BeginPlay()
         //SpotLight->GetLightComponent()->SetAttenuationRadius(2000.f);  // 밝기 분산
 
     }
+
+    // 카메라 스폰
+    AFrameCapture* FrameCapture = GetWorld()->SpawnActor<AFrameCapture>(AFrameCapture::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+
+    // 카메라 위치 지정
+    if (FrameCapture)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("AFrameCapture!"));
+    }
+
+
+
 
 
     // 포스트 프로세스: NIR 흉내
