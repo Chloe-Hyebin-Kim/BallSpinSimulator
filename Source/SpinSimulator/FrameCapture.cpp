@@ -41,17 +41,6 @@ AFrameCapture::AFrameCapture()
         SceneCapture->bCaptureEveryFrame = false; // 매 프레임 캡처할지 여부
         SceneCapture->bCaptureOnMovement = false; // 위치,회전 변화 시 자동 캡처 여부
     }
-
-    //// RenderTarget 객체 생성
-    //RenderTarget = NewObject<UTextureRenderTarget2D>(this, UTextureRenderTarget2D::StaticClass());
-    //RenderTarget->InitAutoFormat(1920, 1080);
-    //RenderTarget->RenderTargetFormat = RTF_RGBA8;
-    //RenderTarget->UpdateResourceImmediate(true);
-
-    //SceneCapture->TextureTarget = RenderTarget;
-    //SceneCapture->CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
-    //SceneCapture->bCaptureEveryFrame = false; // 매 프레임 캡처할지 여부
-    //SceneCapture->bCaptureOnMovement = false; // 위치,회전 변화 시 자동 캡처 여부
 }
 
 AFrameCapture::~AFrameCapture()
@@ -146,28 +135,43 @@ void AFrameCapture::SaveRenderTargetToPNG(const FString& FileName)
         UE_LOG(LogTemp, Error, TEXT("RTResource is NULL!"));
         return;
     }
+   TArray<FColor> OutBMP;
+   RTResource->ReadPixels(OutBMP);
 
-    TArray<FColor> OutBMP;
-    RTResource->ReadPixels(OutBMP);
+   //int32 Width = RenderTarget->SizeX;
+   //int32 Height = RenderTarget->SizeY;
 
-    // 수직 반전 (언리얼은 상하 반전된 이미지 반환)
-    int32 Width = RenderTarget->SizeX;
-    int32 Height = RenderTarget->SizeY;
-    for (int32 Row = 0; Row < Height / 2; ++Row)
-    {
-        int32 IndexA = Row * Width;
-        int32 IndexB = (Height - 1 - Row) * Width;
-        for (int32 Col = 0; Col < Width; ++Col)
-        {
-            OutBMP.SwapMemory(IndexA + Col, IndexB + Col);
-        }
-    }
+   //// 수직 반전
+   //for (int32 Row = 0; Row < Height / 2; ++Row)
+   //{
+   //    int32 IndexA = Row * Width;
+   //    int32 IndexB = (Height - 1 - Row) * Width;
+   //    for (int32 Col = 0; Col < Width; ++Col)
+   //    {
+   //        OutBMP.SwapMemory(IndexA + Col, IndexB + Col);
+   //    }
+   //}
 
-    TArray<uint8> PNGData;
-    FImageUtils::CompressImageArray(Width, Height, OutBMP, PNGData);
+   //// 수평 반전
+   //for (int32 Row = 0; Row < Height; ++Row)
+   //{
+   //    int32 RowStart = Row * Width;
+   //    for (int32 Col = 0; Col < Width / 2; ++Col)
+   //    {
+   //        int32 IndexA = RowStart + Col;
+   //        int32 IndexB = RowStart + (Width - 1 - Col);
+   //        OutBMP.SwapMemory(IndexA, IndexB);
+   //    }
+   //}
+   
+   
+   // PNG로 인코딩
+   TArray<uint8> PNGData;
+   FImageUtils::CompressImageArray(RenderTarget->SizeX, RenderTarget->SizeY, OutBMP, PNGData);
 
-    FString AbsolutePath = FPaths::ProjectSavedDir() + FileName;
-    FFileHelper::SaveArrayToFile(PNGData, *AbsolutePath);
+   // 파일 경로 지정
+   FString AbsolutePath = FPaths::ProjectSavedDir() + FileName;
+   FFileHelper::SaveArrayToFile(PNGData, *AbsolutePath);
 
-    UE_LOG(LogTemp, Log, TEXT("Saved image to: %s"), *AbsolutePath);
+   UE_LOG(LogTemp, Log, TEXT("Saved image to: %s"), *AbsolutePath);
 }
