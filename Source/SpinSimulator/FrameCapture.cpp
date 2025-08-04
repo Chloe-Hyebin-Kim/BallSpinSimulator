@@ -126,7 +126,7 @@ void AFrameCapture::CaptureAndSave(int idx, FVector spinAxis)
 	SaveRenderTargetToPNG(FileName);
 }
 
-void AFrameCapture::CaptureCombinations(int pitchDeg, int yawDeg, FVector spinAxis)
+void AFrameCapture::CaptureCombinations(int pitchDeg, int rollDeg, FVector spinAxis)
 {
     if (!RenderTarget)
     {
@@ -141,8 +141,8 @@ void AFrameCapture::CaptureCombinations(int pitchDeg, int yawDeg, FVector spinAx
     }
 
     SceneCapture->CaptureScene();// ¼öµ¿ Ä¸Ã³
-    //FString FileName = FString::Printf(TEXT("(%.6f, %.6f, %.6f)_%3d_%3d.png"), spinAxis.X, spinAxis.Y, spinAxis.Z, pitchDeg, yawDeg);
-    FString FileName = FString::Printf(TEXT("%d_%d.png"), pitchDeg, yawDeg);
+    //FString FileName = FString::Printf(TEXT("(%.6f, %.6f, %.6f)_%3d_%3d.png"), spinAxis.X, spinAxis.Y, spinAxis.Z, pitchDeg, rollDeg);
+    FString FileName = FString::Printf(TEXT("%d_%d.png"), pitchDeg, rollDeg);
     SaveRenderTargetToPNG(FileName);
 }
 
