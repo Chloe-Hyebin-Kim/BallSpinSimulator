@@ -229,7 +229,8 @@ void ASpinController::OnCaptureAllCombinations(const TArray<FString>& Args)
      int i = 1;
      if (bDegree1)//1도씩 증가
      {
-         for (int pitchDeg = 1; pitchDeg <= 360; ++pitchDeg)
+
+      for (int pitchDeg = 1; pitchDeg <= 360; ++pitchDeg)
          {
              for (int rollDeg = 1; rollDeg <= 360; ++rollDeg)
              {

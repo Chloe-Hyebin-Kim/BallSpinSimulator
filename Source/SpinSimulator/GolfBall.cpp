@@ -269,23 +269,6 @@ void AGolfBall::RotateBallSpinAxis(int pitchDeg, int rollDeg)
 		
 	}
 
-	//for (int pitch = 0; pitch < 180; ++pitch) // elevation (pitch)
-	//{
-	//	// 월드 좌표계에서 회전축 계산 (로컬 축 기준)
-	//	//float pitchRad = FMath::DegreesToRadians(pitch);
-	//	//FQuat pitchQuat = FQuat(FVector(1.f, 0.f, 0.f), pitchRad);
-	//	//AddActorWorldRotation(pitchQuat, false, nullptr, ETeleportType::None);//World Space 기준 회전 적용
-	//	
-	//	
-	//	for (int roll = 0; roll < 360; ++roll)    // azimuth (yaw)
-	//	{
-	//		// 월드 좌표계에서 회전축 계산 (로컬 축 기준)
-	//		//float rollRad = FMath::DegreesToRadians(roll);
-	//		//FQuat rollQuat = FQuat(FVector(0.f, 1.f, 0.f), rollRad);// 회전 쿼터니언  (로컬 기준 회전 축을 기준으로 AngleRad만큼 회전을 액터에 누적 적용)
-	//		//AddActorWorldRotation(rollQuat, false, nullptr, ETeleportType::None);//World Space 기준 회전 적용
-	//		
-	//	}
-	//}
 
 }
 
