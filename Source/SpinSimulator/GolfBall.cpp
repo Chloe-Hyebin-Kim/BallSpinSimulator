@@ -28,47 +28,54 @@ AGolfBall::AGolfBall()
 
 	if (!HasAnyFlags(RF_ClassDefaultObject)) 
 	{
+		bool bTitleistBall = true;
 
-		GolfBallMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TitleistBall"));
-		//RootComponent = GolfBallMesh;
-		//static ConstructorHelpers::FObjectFinder<UStaticMesh> meshTitleistBall(TEXT("/Game/StarterContent/SM_TitleistBall"));
-		static ConstructorHelpers::FObjectFinder<UStaticMesh> meshTitleistBall(TEXT("/Game/StarterContent/Titlelist/SM_TitleistBall"));
-		if (meshTitleistBall.Object != nullptr)
+		if (bTitleistBall)
 		{
+			GolfBallMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TitleistBall"));
+			static ConstructorHelpers::FObjectFinder<UStaticMesh> meshTitleistBall(TEXT("/Game/StarterContent/Titlelist/SM_TitleistBall"));
 
-			GolfBallMesh->SetupAttachment(RootComponent);
+			//RootComponent = GolfBallMesh;
+			if (meshTitleistBall.Object != nullptr)
+			{
 
-			GolfBallMesh->SetStaticMesh(meshTitleistBall.Object);
-			GolfBallMesh->SetWorldLocation(BALL_LOCATION);
-			GolfBallMesh->SetWorldRotation(FRotator::ZeroRotator);
-			GolfBallMesh->SetRelativeScale3D(FVector::OneVector);
-			GolfBallMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-			GolfBallMesh->SetVisibility(true);
+				GolfBallMesh->SetupAttachment(RootComponent);
 
-			//SetVisible(true);
+				GolfBallMesh->SetStaticMesh(meshTitleistBall.Object);
+				GolfBallMesh->SetWorldLocation(BALL_LOCATION);
+				GolfBallMesh->SetWorldRotation(FRotator::ZeroRotator);
+				GolfBallMesh->SetRelativeScale3D(FVector::OneVector);
+				GolfBallMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+				GolfBallMesh->SetVisibility(true);
+
+				//SetVisible(true);
+			}
+
+		} 
+		else
+		{
+			GolfBallMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SM_GolfzonParkBall"));
+			static ConstructorHelpers::FObjectFinder<UStaticMesh> meshTitleistBall(TEXT("/Game/StarterContent/SM_GolfzonPark_Ball"));
+
+			//RootComponent = GolfBallMesh;
+			if (meshTitleistBall.Object != nullptr)
+			{
+
+				GolfBallMesh->SetupAttachment(RootComponent);
+
+				GolfBallMesh->SetStaticMesh(meshTitleistBall.Object);
+				GolfBallMesh->SetWorldLocation(BALL_LOCATION);
+				GolfBallMesh->SetWorldRotation(FRotator::ZeroRotator);
+				GolfBallMesh->SetRelativeScale3D(FVector::OneVector);
+				GolfBallMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+				GolfBallMesh->SetVisibility(true);
+
+				//SetVisible(true);
+			}
+
 		}
 
-
-		/*GolfzonParkBall = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SM_GolfzonParkBall"));
-		RootComponent = GolfBallMesh;
-		static ConstructorHelpers::FObjectFinder<UStaticMesh> meshParkBall(TEXT("/Game/StarterContent/SM_GolfzonPark_Ball"));
-		if (meshParkBall.Object != nullptr)
-		{
-
-			GolfzonParkBall->SetupAttachment(RootComponent);
-
-			GolfzonParkBall->SetStaticMesh(meshParkBall.Object);
-			GolfzonParkBall->SetWorldLocation(BALL_LOCATION+ FVector(0.f,50.f,0.f));
-			GolfzonParkBall->SetWorldRotation(m_SpinAxisAsRot);
-			GolfzonParkBall->SetRelativeScale3D(FVector::OneVector);
-			GolfzonParkBall->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-			GolfzonParkBall->SetVisibility(true);
-		}*/
 	}
-
-
-
-
 
 
 	//SetActorTickEnabled(true);
