@@ -17,6 +17,8 @@ AGolfBall::AGolfBall()
 	m_DegreesPerFrame = m_DegreesPerSecond* DPS2FPS;
 	bSpin = false;
 
+	m_PitchDeg = 0;
+	m_RollDeg = 0;
 
 	m_BallForward=GetActorForwardVector();
 	m_BallRight=GetActorRightVector();
@@ -29,7 +31,8 @@ AGolfBall::AGolfBall()
 
 		GolfBallMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TitleistBall"));
 		//RootComponent = GolfBallMesh;
-		static ConstructorHelpers::FObjectFinder<UStaticMesh> meshTitleistBall(TEXT("/Game/StarterContent/SM_TitleistBall"));
+		//static ConstructorHelpers::FObjectFinder<UStaticMesh> meshTitleistBall(TEXT("/Game/StarterContent/SM_TitleistBall"));
+		static ConstructorHelpers::FObjectFinder<UStaticMesh> meshTitleistBall(TEXT("/Game/StarterContent/Titlelist/SM_TitleistBall"));
 		if (meshTitleistBall.Object != nullptr)
 		{
 
@@ -37,7 +40,7 @@ AGolfBall::AGolfBall()
 
 			GolfBallMesh->SetStaticMesh(meshTitleistBall.Object);
 			GolfBallMesh->SetWorldLocation(BALL_LOCATION);
-			GolfBallMesh->SetWorldRotation(m_SpinAxisAsRot);
+			GolfBallMesh->SetWorldRotation(FRotator::ZeroRotator);
 			GolfBallMesh->SetRelativeScale3D(FVector::OneVector);
 			GolfBallMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			GolfBallMesh->SetVisibility(true);
@@ -84,10 +87,13 @@ void AGolfBall::BeginPlay()
 {
 	Super::BeginPlay();
 
+	SpinAxes.Empty();
+
 	SetActorLocation(BALL_LOCATION);
 
 	m_SpinAxisAsRot = FRotationMatrix::MakeFromZ(m_SpinAxisAsVec).Rotator();
-	SetActorRotation(m_SpinAxisAsRot);
+	//SetActorRotation(m_SpinAxisAsRot);
+	SetActorRotation(FRotator::ZeroRotator);
 
 	FQuat actorQuat = GetActorQuat();
 }
@@ -209,49 +215,120 @@ void AGolfBall::AlignToSpinAxis()
 
 }
 
+
+
+
+void AGolfBall::RotateBallSpinAxis(int pitchDeg, int rollDeg)
+{
+	float rotateRad = FMath::DegreesToRadians(1.f);
+	FQuat pitchQuat = FQuat(FVector(1.f, 0.f, 0.f), rotateRad);
+	FQuat rollQuat = FQuat(FVector(0.f, 1.f, 0.f), rotateRad);
+
+	if (pitchDeg == m_PitchDeg)
+	{
+		m_RollDeg = rollDeg;
+		m_PitchDeg = pitchDeg;
+
+		m_BallForward = GetActorForwardVector();
+		m_BallRight = GetActorRightVector();
+		m_BallUp = GetActorUpVector();
+
+		FRotator tmpWorldRot=K2_GetActorRotation();
+
+		AddActorWorldRotation(rollQuat, false, nullptr, ETeleportType::None);//World Space 기준 회전 적용
+		m_SpinAxisAsQuat = GetActorQuat();
+
+
+		m_BallForward = GetActorForwardVector();
+		m_BallRight = GetActorRightVector();
+		m_BallUp = GetActorUpVector();
+
+		tmpWorldRot = K2_GetActorRotation();
+
+		UE_LOG(LogTemp, Log, TEXT("[ pitchDeg = %3d, rollDeg = %3d ] "), pitchDeg, rollDeg);
+	} 
+	else
+	{
+		float pitchRad = FMath::DegreesToRadians(pitchDeg);
+		FQuat tmpQuat = FQuat(GetActorForwardVector(), pitchRad);
+
+		m_PitchDeg = pitchDeg;
+		m_RollDeg = rollDeg;
+
+		AddActorWorldRotation(tmpQuat, false, nullptr, ETeleportType::None);//World Space 기준 회전 적용
+		AddActorWorldRotation(rollQuat, false, nullptr, ETeleportType::None);//World Space 기준 회전 적용
+		m_SpinAxisAsQuat = GetActorQuat();
+
+		
+	}
+
+	//for (int pitch = 0; pitch < 180; ++pitch) // elevation (pitch)
+	//{
+	//	// 월드 좌표계에서 회전축 계산 (로컬 축 기준)
+	//	//float pitchRad = FMath::DegreesToRadians(pitch);
+	//	//FQuat pitchQuat = FQuat(FVector(1.f, 0.f, 0.f), pitchRad);
+	//	//AddActorWorldRotation(pitchQuat, false, nullptr, ETeleportType::None);//World Space 기준 회전 적용
+	//	
+	//	
+	//	for (int roll = 0; roll < 360; ++roll)    // azimuth (yaw)
+	//	{
+	//		// 월드 좌표계에서 회전축 계산 (로컬 축 기준)
+	//		//float rollRad = FMath::DegreesToRadians(roll);
+	//		//FQuat rollQuat = FQuat(FVector(0.f, 1.f, 0.f), rollRad);// 회전 쿼터니언  (로컬 기준 회전 축을 기준으로 AngleRad만큼 회전을 액터에 누적 적용)
+	//		//AddActorWorldRotation(rollQuat, false, nullptr, ETeleportType::None);//World Space 기준 회전 적용
+	//		
+	//	}
+	//}
+
+}
+
+
 void AGolfBall::AllCombinationsOfRotateAxis(FVector newSpinAxis)
 {
+	// 초기화
 	FRotator zRotation = FRotationMatrix::MakeFromZ(FVector(0.f, 0.f, 1.f)).Rotator();//(Z축 == 0,0,1)
 	SetActorRotation(zRotation);//초기화
 
-	FVector normSpinAxis = newSpinAxis.GetSafeNormal();// 반드시 정규화
-	FRotator newRotator = FRotationMatrix::MakeFromZ(normSpinAxis).Rotator();// Z축을 주어진 방향에 정렬
-	SetActorRotation(newRotator);
+
+	// 회전축 정렬
+	FVector normSpinAxis = newSpinAxis.GetSafeNormal();
+	FRotator newRot = FRotationMatrix::MakeFromZ(normSpinAxis).Rotator();
+	SetActorRotation(newRot);
 
 
 
 
 	/*
-	 for (int pitchDeg = 0; pitchDeg <= 180; ++pitchDeg) // X축 기울기 (Pitch)
+	for (int thetaDeg = 0; thetaDeg < 180; ++thetaDeg) // elevation (pitch)
 	{
-		for (int yawDeg = 0; yawDeg < 360; ++yawDeg) // 수평 회전 각도 (Yaw)
+		for (int phiDeg = 0; phiDeg < 360; ++phiDeg)    // azimuth (yaw)
 		{
-			// 회전된 방향 벡터 구하기
-			FRotator Rotation(pitchDeg, yawDeg, 0);  // Pitch = X축 기울기, Yaw = 수평 회전
-			FVector RotatedVector = Rotation.RotateVector(FVector(0, 0, 1));
+			float thetaRad = FMath::DegreesToRadians(thetaDeg);
+			float phiRad = FMath::DegreesToRadians(phiDeg);
 
-			// 출력 또는 저장
-			UE_LOG(LogTemp, Log, TEXT("[ Pitch = %3d, Yaw = %3d ] -> SpinAxis = (%.6f, %.6f, %.6f)"), pitchDeg, yawDeg, RotatedVector.X, RotatedVector.Y, RotatedVector.Z);
+			FVector newSpinAxis;
+			newSpinAxis.X = FMath::Sin(thetaRad) * FMath::Cos(phiRad);
+			newSpinAxis.Y = FMath::Sin(thetaRad) * FMath::Sin(phiRad);
+			newSpinAxis.Z = FMath::Cos(thetaRad);
 
-			//////////////////////////////////////////////////
+			FTimerHandle timerHandle;
+			FTimerDelegate delayCommandDelegate = FTimerDelegate::CreateLambda([=]()
+				{
+					// 초기화
+					SetActorRotation(FRotator::ZeroRotator);
 
-			float angleXRad = FMath::DegreesToRadians(pitchDeg);
-			float angleYRad = FMath::DegreesToRadians(yawDeg);
+					// 회전축 정렬
+					FVector normSpinAxis = newSpinAxis.GetSafeNormal();
+					FRotator newRot = FRotationMatrix::MakeFromZ(normSpinAxis).Rotator();
+					SetActorRotation(newRot);
 
-			float newX = FMath::Sin(angleYRad);
-			float newY = -FMath::Sin(angleXRad) * FMath::Cos(angleYRad);
-			float newZ = FMath::Cos(angleXRad) * FMath::Cos(angleYRad);
+					// 출력
+					UE_LOG(LogTemp, Log, TEXT("[ θ = %3d, φ = %3d ]  SpinAxis = (%.6f, %.6f, %.6f)"),
+						thetaDeg, phiDeg, newSpinAxis.X, newSpinAxis.Y, newSpinAxis.Z);
+				});
 
-			UE_LOG(LogTemp, Log, TEXT("[ X : %3d deg , Y : %3d deg ]   ->   ( %.6f, %.6f, %.6f )"), pitchDeg, yawDeg, newX, newY, newZ);
-
-			FRotator zRotation = FRotationMatrix::MakeFromZ(FVector(0.f, 0.f, 1.f)).Rotator();//(Z축 == 0,0,1)
-			SetActorRotation(zRotation);//초기화
-			
-			FVector newSpinAxis(newX, newY, newZ);
-			FVector normSpinAxis = newSpinAxis.GetSafeNormal();// 반드시 정규화
-			FRotator newRotator = FRotationMatrix::MakeFromZ(normSpinAxis).Rotator();// Z축을 주어진 방향에 정렬
-			SetActorRotation(newRotator);
-
+			GetWorld()->GetTimerManager().SetTimer(timerHandle, delayCommandDelegate, 0.01f * i, false);
+			++i;
 		}
 	}
 	*/
@@ -274,6 +351,39 @@ void AGolfBall::RotateBallForFrameCapture(int idx)
 	UE_LOG(LogTemp, Log, TEXT("[ %d ] Rotation Quaternion : X = %f, Y = %f, Z = %f, W = %f"), idx, rotationQuat.X, rotationQuat.Y, rotationQuat.Z, rotationQuat.W);//(X, Y, Z) = sin(θ/2) * 회전축 ,  W = cos(θ/2)
 	UE_LOG(LogTemp, Log, TEXT("[ %d ] Rotated Direction (World Vec): Forward (X) = %f, Right (Y) = %f, Up (Z) = %f"), idx, rotationQuat.RotateVector(FVector(1, 0, 0)).X, rotationQuat.RotateVector(FVector(0, 1, 0)).Y, rotationQuat.RotateVector(FVector(0, 0, 1)).Z);//회전을 적용했을 때의 새로운 방향 벡터
 	UE_LOG(LogTemp, Log, TEXT("[ %d ] Euler (deg): Pitch = %f, Yaw = %f, Roll = %f"), idx, rotationQuat.Rotator().Pitch, rotationQuat.Rotator().Yaw, rotationQuat.Rotator().Roll);//쿼터니언을 오일러 각(Euler angles) 으로 변환한 값
+}
+
+void AGolfBall::RotateSpinAxis(FVector newSpinAxis)
+{
+
+	for (int32 PitchDeg = 0; PitchDeg < 360; ++PitchDeg)
+	{
+		// Pitch를 적용한 회전 (X축 기준)
+		FRotator PitchRotator(PitchDeg, 0, 0);
+		FQuat PitchQuat = PitchRotator.Quaternion();
+
+		// Pitch에 의해 새로 정의된 X축 방향
+		FVector NewX = PitchQuat.RotateVector(FVector(1, 0, 0));
+
+		for (int32 RollDeg = 0; RollDeg < 360; ++RollDeg)
+		{
+			// 새 X축(NewX)을 중심으로 RollDeg도 회전
+			FQuat RollQuat = FQuat(NewX.GetSafeNormal(), FMath::DegreesToRadians(RollDeg));
+
+			// 전체 회전 쿼터니언 = Pitch 먼저, Roll 나중 (RollQuat * PitchQuat)
+			FQuat TotalQuat = RollQuat * PitchQuat;
+
+			// 이 회전의 회전축 저장
+			FVector SpinAxis = TotalQuat.GetRotationAxis(); // Normalize 되어 있음
+			SpinAxes.Add(SpinAxis);
+
+			// 로그 출력
+			UE_LOG(LogTemp, Log, TEXT("Pitch: %d, Roll: %d → SpinAxis: %s"), PitchDeg, RollDeg, *SpinAxis.ToString());
+		}
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("총 Spin Axis 수: %d"), SpinAxes.Num());
+
 }
 
 void AGolfBall::CaptureFrame()

@@ -122,76 +122,121 @@ void AFrameCapture::CaptureAndSave(int idx, FVector spinAxis)
     }
 
 	SceneCapture->CaptureScene();// 수동 캡처
-	FString FileName = FString::Printf(TEXT("RotatedSpinAxis_%d,%d,%d_Frame%02d.png"), (int)spinAxis.X, (int)spinAxis.Y, (int)spinAxis.Z, idx);
-	SaveRenderTargetToPNG(FileName);
-}
-
-void AFrameCapture::CaptureCombinations(int pitchDeg, int rollDeg, FVector spinAxis)
-{
-    if (!RenderTarget)
-    {
-        UE_LOG(LogTemp, Error, TEXT("RenderTarget is NULL!"));
-        return;
-    }
-
-    if (!SceneCapture)
-    {
-        UE_LOG(LogTemp, Error, TEXT("SceneCapture is NULL!"));
-        return;
-    }
-
-    SceneCapture->CaptureScene();// 수동 캡처
-    //FString FileName = FString::Printf(TEXT("(%.6f, %.6f, %.6f)_%3d_%3d.png"), spinAxis.X, spinAxis.Y, spinAxis.Z, pitchDeg, rollDeg);
-    FString FileName = FString::Printf(TEXT("%d_%d.png"), pitchDeg, rollDeg);
-    SaveRenderTargetToPNG(FileName);
-}
-
-void AFrameCapture::SaveRenderTargetToPNG(const FString& FileName)
-{
+	FString fileName = FString::Printf(TEXT("/SpinAxis/RotatedSpinAxis_%d,%d,%d_Frame%02d.png"), (int)spinAxis.X, (int)spinAxis.Y, (int)spinAxis.Z, idx);
+    
     FTextureRenderTargetResource* RTResource = RenderTarget->GameThread_GetRenderTargetResource();
-   
-   if (!RTResource)
+
+    if (!RTResource)
     {
         UE_LOG(LogTemp, Error, TEXT("RTResource is NULL!"));
         return;
     }
-   TArray<FColor> OutBMP;
-   RTResource->ReadPixels(OutBMP);
 
-   //int32 Width = RenderTarget->SizeX;
-   //int32 Height = RenderTarget->SizeY;
+    TArray<FColor> OutBMP;
+    RTResource->ReadPixels(OutBMP);
 
-   //// 수직 반전
-   //for (int32 Row = 0; Row < Height / 2; ++Row)
-   //{
-   //    int32 IndexA = Row * Width;
-   //    int32 IndexB = (Height - 1 - Row) * Width;
-   //    for (int32 Col = 0; Col < Width; ++Col)
-   //    {
-   //        OutBMP.SwapMemory(IndexA + Col, IndexB + Col);
-   //    }
-   //}
+    // PNG로 인코딩
+    TArray<uint8> PNGData;
+    FImageUtils::CompressImageArray(RenderTarget->SizeX, RenderTarget->SizeY, OutBMP, PNGData);
 
-   //// 수평 반전
-   //for (int32 Row = 0; Row < Height; ++Row)
-   //{
-   //    int32 RowStart = Row * Width;
-   //    for (int32 Col = 0; Col < Width / 2; ++Col)
-   //    {
-   //        int32 IndexA = RowStart + Col;
-   //        int32 IndexB = RowStart + (Width - 1 - Col);
-   //        OutBMP.SwapMemory(IndexA, IndexB);
-   //    }
-   //}
-   
-   
-   // PNG로 인코딩
-   TArray<uint8> PNGData;
-   FImageUtils::CompressImageArray(RenderTarget->SizeX, RenderTarget->SizeY, OutBMP, PNGData);
+    // 파일 경로 지정
+    FString AbsolutePath = FPaths::ProjectSavedDir() + fileName;
+    FFileHelper::SaveArrayToFile(PNGData, *AbsolutePath);
 
-   // 파일 경로 지정
-   FString AbsolutePath = FPaths::ProjectSavedDir() + FileName;
-   FFileHelper::SaveArrayToFile(PNGData, *AbsolutePath);
+    UE_LOG(LogTemp, Log, TEXT("Saved image to: %s"), *AbsolutePath);
+}
 
-   UE_LOG(LogTemp, Log, TEXT("Saved image to: %s"), *AbsolutePath);
+bool AFrameCapture::CaptureCombinations(int pitchDeg, int rollDeg/*, FVector spinAxis*/)
+{
+    if (!SceneCapture)
+    {
+        UE_LOG(LogTemp, Error, TEXT("SceneCapture is NULL!"));
+        return false;
+    }
+
+    SceneCapture->CaptureScene();// 수동 캡처
+    //FString FileName = FString::Printf(TEXT("(%.6f, %.6f, %.6f)_%3d_%3d.png"), spinAxis.X, spinAxis.Y, spinAxis.Z, pitchDeg, rollDeg);
+    FString FileName = FString::Printf(TEXT("/Pitch_Roll/%d_%d.png"), pitchDeg, rollDeg);
+
+    //SaveRenderTargetToPNG(FileName);
+
+    if (!RenderTarget)
+    {
+        UE_LOG(LogTemp, Error, TEXT("RenderTarget is NULL!"));
+        return false;
+    }
+
+    FTextureRenderTargetResource* RTResource = RenderTarget->GameThread_GetRenderTargetResource();
+
+    if (!RTResource)
+    {
+        UE_LOG(LogTemp, Error, TEXT("RTResource is NULL!"));
+        return false;
+    }
+
+    TArray<FColor> OutBMP;
+    RTResource->ReadPixels(OutBMP);
+
+    // PNG로 인코딩
+    TArray<uint8> PNGData;
+    FImageUtils::CompressImageArray(RenderTarget->SizeX, RenderTarget->SizeY, OutBMP, PNGData);
+
+    // 파일 경로 지정
+    FString AbsolutePath = FPaths::ProjectSavedDir() + FileName;
+    bool rerult = FFileHelper::SaveArrayToFile(PNGData, *AbsolutePath);
+    
+	/* if (rerult)
+	 {
+		 UE_LOG(LogTemp, Log, TEXT("Saved image to: %s"), *AbsolutePath);
+	 }*/
+
+    return rerult;
+}
+
+
+void AFrameCapture::SaveRenderTargetToPNG(const FString& fileName)
+{
+    FTextureRenderTargetResource* RTResource = RenderTarget->GameThread_GetRenderTargetResource();
+
+    if (!RTResource)
+    {
+        UE_LOG(LogTemp, Error, TEXT("RTResource is NULL!"));
+        return;
+    }
+    TArray<FColor> OutBMP;
+    RTResource->ReadPixels(OutBMP);
+
+    //int32 Width = RenderTarget->SizeX;
+    //int32 Height = RenderTarget->SizeY;
+    //// 수직 반전
+    //for (int32 Row = 0; Row < Height / 2; ++Row)
+    //{
+    //    int32 IndexA = Row * Width;
+    //    int32 IndexB = (Height - 1 - Row) * Width;
+    //    for (int32 Col = 0; Col < Width; ++Col)
+    //    {
+    //        OutBMP.SwapMemory(IndexA + Col, IndexB + Col);
+    //    }
+    //}
+    //// 수평 반전
+    //for (int32 Row = 0; Row < Height; ++Row)
+    //{
+    //    int32 RowStart = Row * Width;
+    //    for (int32 Col = 0; Col < Width / 2; ++Col)
+    //    {
+    //        int32 IndexA = RowStart + Col;
+    //        int32 IndexB = RowStart + (Width - 1 - Col);
+    //        OutBMP.SwapMemory(IndexA, IndexB);
+    //    }
+    //}
+
+    // PNG로 인코딩
+    TArray<uint8> PNGData;
+    FImageUtils::CompressImageArray(RenderTarget->SizeX, RenderTarget->SizeY, OutBMP, PNGData);
+
+    // 파일 경로 지정
+    FString AbsolutePath = FPaths::ProjectSavedDir() + fileName;
+    FFileHelper::SaveArrayToFile(PNGData, *AbsolutePath);
+
+    UE_LOG(LogTemp, Log, TEXT("Saved image to: %s"), *AbsolutePath);
 }

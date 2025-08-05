@@ -36,7 +36,10 @@ public:
 	void DrawBallSpinAxis();
 	void DrawWorldGizmoAxis();
 	void CaptureFrame();
-	void AllCombinationsOfRotateAxis(FVector newSpinAxis);
+	void RotateSpinAxis(FVector newSpinAxis);
+	void AllCombinationsOfRotateAxis(FVector newSpinAxis);//FRotator newRotator);
+	void RotateBallSpinAxis(int pitchDeg, int rollDeg);
+
 	void RotateBallForFrameCapture(int idx);
 
 public:
@@ -46,6 +49,9 @@ public:
 	const FQuat& GetBallQuaternion() { return m_SpinAxisAsQuat; }
 	float GetDegreesPerFrame() { return m_DegreesPerFrame; }
 	float GetDegreesPerSecond() { return m_DegreesPerSecond; }
+
+	// 결과 저장용
+	TArray<FVector> SpinAxes;
 
 private:
 	void SetVisible(bool isVisible);
@@ -61,6 +67,8 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (AllowPrivateAccess = "true"))
 		class UStaticMeshComponent* GolfzonParkBall;
 
+		int m_PitchDeg;
+		int m_RollDeg;
 
 	  FVector m_BallForward;
 	  FVector m_BallRight;
