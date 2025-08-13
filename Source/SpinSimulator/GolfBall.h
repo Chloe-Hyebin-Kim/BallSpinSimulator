@@ -49,6 +49,7 @@ public:
 	const FQuat& GetBallQuaternion() { return m_SpinAxisAsQuat; }
 	float GetDegreesPerFrame() { return m_DegreesPerFrame; }
 	float GetDegreesPerSecond() { return m_DegreesPerSecond; }
+	float GetInputRPM() { return m_InputRPM; }
 
 	// 결과 저장용
 	TArray<FVector> SpinAxes;

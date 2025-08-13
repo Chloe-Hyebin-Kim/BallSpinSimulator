@@ -107,7 +107,7 @@ void AFrameCapture::BeginPlay()
 
 }
 
-void AFrameCapture::CaptureAndSave(int idx, FVector spinAxis)
+void AFrameCapture::CaptureAndSave(int idx, FVector spinAxis, float rpm)
 {
     if (!RenderTarget)
     {
@@ -122,7 +122,7 @@ void AFrameCapture::CaptureAndSave(int idx, FVector spinAxis)
     }
 
 	SceneCapture->CaptureScene();// ¼öµ¿ Ä¸Ã³
-	FString fileName = FString::Printf(TEXT("/SpinAxis/RotatedSpinAxis_%d,%d,%d_Frame%02d.png"), (int)spinAxis.X, (int)spinAxis.Y, (int)spinAxis.Z, idx);
+	FString fileName = FString::Printf(TEXT("/SpinAxis/(%d,%d,%d)_%dRPM/Frame%02d.png"), (int)spinAxis.X, (int)spinAxis.Y, (int)spinAxis.Z,(int)rpm, idx);
     
     FTextureRenderTargetResource* RTResource = RenderTarget->GameThread_GetRenderTargetResource();
 

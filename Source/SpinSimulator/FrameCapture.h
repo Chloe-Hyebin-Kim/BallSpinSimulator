@@ -20,7 +20,7 @@ public:
     virtual void BeginPlay() override;
 
     UFUNCTION(BlueprintCallable)
-    void CaptureAndSave(int idx, FVector spinAxis);
+    void CaptureAndSave(int idx, FVector spinAxis, float rpm);
     bool CaptureCombinations(int pitchDeg, int yawDeg/*, FVector spinAxis*/ );
 
 private:

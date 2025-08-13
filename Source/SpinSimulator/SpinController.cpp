@@ -194,6 +194,7 @@ void ASpinController::OnCaptureCameraView(const TArray<FString>& Args)
 
     ControlledBallActor->SetIsSpin(true);//무조건 스핀 끄기
     FVector vecInputSpinAxis = ControlledBallActor->GetInputSpinAxis();
+    float inputRPM = ControlledBallActor->GetInputRPM();
 
     for (int i = 1; i <= FRAMECOUNT; ++i)
     {
@@ -202,7 +203,7 @@ void ASpinController::OnCaptureCameraView(const TArray<FString>& Args)
         FTimerDelegate delayCommandDelegate = FTimerDelegate::CreateLambda([=]()
             {
                 ControlledBallActor->RotateBallForFrameCapture(idx);
-                CaptureActor->CaptureAndSave(idx, vecInputSpinAxis);
+                CaptureActor->CaptureAndSave(idx, vecInputSpinAxis, inputRPM);
 
                 // 출력 또는 저장
                 UE_LOG(LogTemp, Log, TEXT("[Frame No. %d] SpinAxis = (%.6f, %.6f, %.6f)"), idx, vecInputSpinAxis.X, vecInputSpinAxis.Y, vecInputSpinAxis.Z);
@@ -237,18 +238,15 @@ void ASpinController::OnCaptureAllCombinations(const TArray<FString>& Args)
                  FTimerHandle timerHandle;
                  FTimerDelegate delayCommandDelegate = FTimerDelegate::CreateLambda([=]()
                      {
-                         // X축 기준 Pitch 회전
-                         FQuat PitchQuat = FQuat(FVector::ForwardVector, FMath::DegreesToRadians(pitchDeg));
-                         // Pitch 이후 회전된 공간에서의 Y축을 기준으로 Roll 회전
-                         FVector LocalY = PitchQuat.RotateVector(FVector::RightVector);// Pitch 후 회전된 공간 기준 Y축을 얻음
-                         FQuat RollQuat = FQuat(LocalY, FMath::DegreesToRadians(rollDeg)); // 그 Y축을 기준으로 Roll 회전
-
-                         // 최종 쿼터니언 (누적 회전)
-                         FQuat TotalQuat = RollQuat * PitchQuat;
-                         ControlledBallActor->SetActorRotation(TotalQuat);
+                     //Pitch 먼저 적용 -> Pitch로 회전된 Local Y축 기준 Roll 적용 -> 최종 쿼터니언 생성 -> Z축 변환
+                         FQuat PitchQuat = FQuat(FVector::ForwardVector, FMath::DegreesToRadians(pitchDeg));//기준 축 ForwardVector ( X축 )
+                         FVector LocalY = PitchQuat.RotateVector(FVector::RightVector);// Roll은 Pitch 이후의 새로운 Y축(Local Y) 기준으로 회전.
+                         FQuat RollQuat = FQuat(LocalY, FMath::DegreesToRadians(rollDeg));//Roll 쿼터니언 생성
+                         FQuat TotalQuat = RollQuat * PitchQuat;//Pitch 먼저 적용, 그 다음 Roll
+                         ControlledBallActor->SetActorRotation(TotalQuat);//초기 스핀축 UpVector (Z축)
                          CaptureActor->CaptureCombinations(pitchDeg, rollDeg);
-                         // 결과 회전축(Z축 → Spin Axis)
-                         FVector SpinAxis = TotalQuat.RotateVector(FVector::UpVector); // Z축 방향 회전 벡터
+     
+                         FVector SpinAxis = TotalQuat.RotateVector(FVector::UpVector); 
                          UE_LOG(LogTemp, Log, TEXT("[ Pitch: %d, Roll: %d ] New Spin Axis:(%.6f, %.6f, %.6f)"),
                              pitchDeg, rollDeg, SpinAxis.X, SpinAxis.Y, SpinAxis.Z);
                      });
