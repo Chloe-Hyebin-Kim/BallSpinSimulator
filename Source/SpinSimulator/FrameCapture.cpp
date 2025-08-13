@@ -20,8 +20,8 @@ AFrameCapture::AFrameCapture()
 
     // 컴포넌트 생성
     SceneCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("SceneCapture"));
-    RootComponent = SceneCapture;
-
+    //RootComponent = SceneCapture;
+    SceneCapture->SetupAttachment(RootComponent);
 
     static ConstructorHelpers::FObjectFinder<UTextureRenderTarget2D> renderTarget(TEXT("/Game/StarterContent/Blueprints/SpinRenderTarget2D"));
 
@@ -124,6 +124,45 @@ void AFrameCapture::CaptureAndSave(int idx, FVector spinAxis, float rpm)
 	SceneCapture->CaptureScene();// 수동 캡처
 	FString fileName = FString::Printf(TEXT("/SpinAxis/(%d,%d,%d)_%dRPM/Frame%02d.png"), (int)spinAxis.X, (int)spinAxis.Y, (int)spinAxis.Z,(int)rpm, idx);
     
+    FTextureRenderTargetResource* RTResource = RenderTarget->GameThread_GetRenderTargetResource();
+
+    if (!RTResource)
+    {
+        UE_LOG(LogTemp, Error, TEXT("RTResource is NULL!"));
+        return;
+    }
+
+    TArray<FColor> OutBMP;
+    RTResource->ReadPixels(OutBMP);
+
+    // PNG로 인코딩
+    TArray<uint8> PNGData;
+    FImageUtils::CompressImageArray(RenderTarget->SizeX, RenderTarget->SizeY, OutBMP, PNGData);
+
+    // 파일 경로 지정
+    FString AbsolutePath = FPaths::ProjectSavedDir() + fileName;
+    FFileHelper::SaveArrayToFile(PNGData, *AbsolutePath);
+
+    UE_LOG(LogTemp, Log, TEXT("Saved image to: %s"), *AbsolutePath);
+}
+
+void AFrameCapture::CaptureAndSave_AI(int idx, FVector spinAxis, float rpm)
+{
+    if (!RenderTarget)
+    {
+        UE_LOG(LogTemp, Error, TEXT("RenderTarget is NULL!"));
+        return;
+    }
+
+    if (!SceneCapture)
+    {
+        UE_LOG(LogTemp, Error, TEXT("SceneCapture is NULL!"));
+        return;
+    }
+
+    SceneCapture->CaptureScene();// 수동 캡처
+    FString fileName = FString::Printf(TEXT("/SpinAxis_AI/%.1fRPM_(%f,%f,%f)/Frame%02d.png"), rpm, spinAxis.X, spinAxis.Y, spinAxis.Z,  idx);
+
     FTextureRenderTargetResource* RTResource = RenderTarget->GameThread_GetRenderTargetResource();
 
     if (!RTResource)

@@ -77,6 +77,33 @@ void ASpinSimulatorGameModeBase::BeginPlay()
     }
 
 
+
+    TArray<FString> FileLines;
+
+    // 파일 경로 지정
+    FString FilePath = FPaths::ProjectSavedDir() + TEXT("/SpinDataCSV/range_for_synthetic_data.csv");
+    if (FFileHelper::LoadFileToStringArray(FileLines, *FilePath))
+    {
+        for (int32 i = 1; i < FileLines.Num(); ++i) // 0번째 줄은 헤더
+        {
+            TArray<FString> Columns;
+            FileLines[i].ParseIntoArray(Columns, TEXT(","), true);
+
+            FString rpm = Columns[0];
+            float f32InputRPM = FCString::Atoi(*Columns[0]);
+
+            FVector SpinAxisAsVec = FVector::UpVector;
+            SpinAxisAsVec.X = FCString::Atoi(*Columns[1]);
+            SpinAxisAsVec.Y = FCString::Atof(*Columns[2]);
+            SpinAxisAsVec.Z = FCString::Atof(*Columns[3]);
+
+            SpinController->m_arrRPM.Push(f32InputRPM);
+            SpinController->m_arrSpinAxis.Push(SpinAxisAsVec);
+
+            UE_LOG(LogTemp, Log, TEXT("RPM:%s , SpinAxis:%f,%f,%f"), *rpm, SpinAxisAsVec.X, SpinAxisAsVec.Y, SpinAxisAsVec.Z);
+        }
+    }
+
     //APostProcessVolume* PPVolume = GetWorld()->SpawnActor<APostProcessVolume>(APostProcessVolume::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator);
     //if (PPVolume)
     //{

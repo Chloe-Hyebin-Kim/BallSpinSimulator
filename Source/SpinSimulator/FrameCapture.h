@@ -21,6 +21,7 @@ public:
 
     UFUNCTION(BlueprintCallable)
     void CaptureAndSave(int idx, FVector spinAxis, float rpm);
+    void CaptureAndSave_AI(int idx, FVector spinAxis, float rpm);
     bool CaptureCombinations(int pitchDeg, int yawDeg/*, FVector spinAxis*/ );
 
 private:

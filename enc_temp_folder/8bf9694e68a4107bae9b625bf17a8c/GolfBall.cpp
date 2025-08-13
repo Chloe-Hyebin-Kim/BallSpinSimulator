@@ -34,8 +34,8 @@ AGolfBall::AGolfBall()
 		{
 			GolfBallMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TitleistBall"));
 			static ConstructorHelpers::FObjectFinder<UStaticMesh> meshTitleistBall(TEXT("/Game/StarterContent/Titlelist/SM_TitleistBall"));
-			//static ConstructorHelpers::FObjectFinder<UStaticMesh> meshTitleistBall(TEXT("/Game/StarterContent/SM_MERGED_SM_TitleistBall_2"));
-			
+		
+			//RootComponent = GolfBallMesh;
 			if (meshTitleistBall.Object != nullptr)
 			{
 
@@ -55,7 +55,10 @@ AGolfBall::AGolfBall()
 		else
 		{
 			GolfBallMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SM_GolfzonParkBall"));
-			static ConstructorHelpers::FObjectFinder<UStaticMesh> meshTitleistBall(TEXT("/Game/StarterContent/SM_GolfzonPark_Ball"));
+			//static ConstructorHelpers::FObjectFinder<UStaticMesh> meshTitleistBall(TEXT("/Game/StarterContent/SM_GolfzonPark_Ball"));
+
+			static ConstructorHelpers::FObjectFinder<UStaticMesh> meshTitleistBall(TEXT("/Game/StarterContent/SM_MERGED_SM_TitleistBall_2"));
+			//RootComponent = GolfBallMesh;
 			if (meshTitleistBall.Object != nullptr)
 			{
 

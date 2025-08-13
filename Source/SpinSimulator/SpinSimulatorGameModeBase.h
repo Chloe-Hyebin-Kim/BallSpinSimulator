@@ -8,12 +8,13 @@
 #include "Engine/SpotLight.h"
 #include "Components/SpotLightComponent.h"
 #include "Camera/CameraActor.h"
-
+#include "SpinSimulatorData.h"
 
 //#include "UObject/ConstructorHelpers.h"
 //#include "Components/SceneCaptureComponent2D.h"
 
 #include "SpinSimulatorGameModeBase.generated.h"
+
 
 /**
  * 
@@ -28,6 +29,5 @@ public:
 	virtual void BeginPlay() override;
 
 protected:
-	
 	//UPROPERTY(EditAnywhere) TSubclassOf<AGolfBall> GolfBallActorClass;
 };

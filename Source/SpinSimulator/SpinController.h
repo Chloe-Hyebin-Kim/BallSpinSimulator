@@ -22,6 +22,9 @@ public:
 public:
     AGolfBall* GetBallActor() {return ControlledBallActor;};
 
+    TArray<FVector> m_arrSpinAxis;
+    TArray<float>  m_arrRPM;
+
 protected:
     /** 콘솔에서 호출될 SetAxis 명령 함수 */
     void OnSwitchBallSpinCommand(const TArray<FString>& Args);
@@ -31,6 +34,7 @@ protected:
     void OnShowBallAxisCommand(const TArray<FString>& Args);
     void OnCaptureCameraView(const TArray<FString>& Args);
     void OnCaptureAllCombinations(const TArray<FString>& Args);
+    void OnCaptureCSV(const TArray<FString>& Args);
     
 
 protected:

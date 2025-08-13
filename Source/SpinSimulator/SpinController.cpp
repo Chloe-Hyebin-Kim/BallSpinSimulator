@@ -103,6 +103,14 @@ void ASpinController::BeginPlay()
         FConsoleCommandWithArgsDelegate::CreateUObject(this, &ASpinController::OnCaptureAllCombinations)
     );
     UE_LOG(LogTemp, Log, TEXT("RegisterConsoleCommand.  >>>CaptureCombinations"));
+
+    //CaptureCombinations
+    IConsoleManager::Get().RegisterConsoleCommand(
+        TEXT("CaptureCSV"),
+        TEXT("Simulated and captured all possible cases."),
+        FConsoleCommandWithArgsDelegate::CreateUObject(this, &ASpinController::OnCaptureCSV)
+    );
+    UE_LOG(LogTemp, Log, TEXT("RegisterConsoleCommand.  >>>CaptureCSV"));
 }
 
 void ASpinController::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -115,6 +123,7 @@ void ASpinController::EndPlay(const EEndPlayReason::Type EndPlayReason)
     IConsoleManager::Get().UnregisterConsoleObject(TEXT("ShowBallAxis"));
     IConsoleManager::Get().UnregisterConsoleObject(TEXT("CaptureView"));
     IConsoleManager::Get().UnregisterConsoleObject(TEXT("CaptureCombinations"));
+    IConsoleManager::Get().UnregisterConsoleObject(TEXT("CaptureCSV"));
 
     Super::EndPlay(EndPlayReason);
 }
@@ -177,6 +186,18 @@ void ASpinController::OnShowBallAxisCommand(const TArray<FString>& Args)
     UE_LOG(LogTemp, Log, TEXT("OnShowBallAxisCommand."));
 
     ControlledBallActor->DrawBallSpinAxis();
+
+    FVector spinAxis=  ControlledBallActor->GetBallSpinAxis();
+    float xRad = FMath::Acos(FVector::DotProduct(FVector::ForwardVector, spinAxis));
+	float yRad = FMath::Acos(FVector::DotProduct(FVector::RightVector, spinAxis));
+	float zRad = FMath::Acos(FVector::DotProduct(FVector::UpVector, spinAxis));
+	
+    float xDeg = FMath::RadiansToDegrees(xRad);
+	float yDeg = FMath::RadiansToDegrees(yRad);
+	float zDeg = FMath::RadiansToDegrees(zRad);
+
+
+
 }
 
 void ASpinController::OnCaptureCameraView(const TArray<FString>& Args)
@@ -292,4 +313,42 @@ void ASpinController::OnCaptureAllCombinations(const TArray<FString>& Args)
      }
 
 
+}
+
+void ASpinController::OnCaptureCSV(const TArray<FString>& Args)
+{
+    UE_LOG(LogTemp, Log, TEXT("OnCaptureCSV."));
+
+    AFrameCapture* CaptureActor = Cast<AFrameCapture>(UGameplayStatics::GetActorOfClass(GetWorld(), AFrameCapture::StaticClass()));
+    if (!CaptureActor)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Can not find CaptureActor."));
+    }
+
+    ControlledBallActor->SetIsSpin(true);//¹«Á¶°Ç ½ºÇÉ ²ô±â
+
+    int t =1;
+    for (int i = 0; i < m_arrRPM.Num(); ++i)
+    {
+        for (int j = 1; j <= 1000; ++j)
+        {
+            FTimerHandle timerHandle;
+            FTimerDelegate delayCommandDelegate = FTimerDelegate::CreateLambda([=]()
+                {
+                    FVector SpinAxis = m_arrSpinAxis[i];
+                    ControlledBallActor->SetSpinAxis(SpinAxis);
+
+                    float AngleDeg = m_arrRPM[i] * RPM2DPS * DPS2FPS * j; //RPM -> DegreesPerSecond -> Degrees Per Frame
+                    float AngleRad = FMath::DegreesToRadians(AngleDeg);
+					FQuat rotationQuat = FQuat(SpinAxis, AngleRad);
+					ControlledBallActor->AddActorWorldRotation(rotationQuat, false, nullptr, ETeleportType::None);
+
+                    CaptureActor->CaptureAndSave_AI(j, SpinAxis, m_arrRPM[i]);
+                });
+            GetWorld()->GetTimerManager().SetTimer(timerHandle, delayCommandDelegate, 0.1f * t, false);
+
+            ++t;
+        }
+    }
+   
 }

@@ -66,7 +66,7 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere,meta = (AllowPrivateAccess = "true"))
 		class UStaticMeshComponent* GolfBallMesh;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (AllowPrivateAccess = "true"))
-		class UStaticMeshComponent* GolfzonParkBall;
+		class UStaticMeshComponent* AxisBall;
 
 		int m_PitchDeg;
 		int m_RollDeg;

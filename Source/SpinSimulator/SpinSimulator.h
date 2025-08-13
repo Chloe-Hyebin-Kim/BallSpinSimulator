@@ -9,7 +9,7 @@
 #define FRAMECOUNT 15	//사진 찍는 개수
 
 #define RPM2DPS 6.0	//RPM -> DegreesPerSecond 하기위해 곱해야 하는 값
-#define DPS2FPS 0.002	//DegreesPerSecond -> FPS 하기위해 곱해야 하는 값
+#define DPS2FPS 0.0005	//DegreesPerSecond -> FPS 하기위해 곱해야 하는 값
 
 #define ARROWLENGTH 100.0	// ArrowLength 길이
 #define ARROWSIZE 10.0	// ArrowHead 크기
