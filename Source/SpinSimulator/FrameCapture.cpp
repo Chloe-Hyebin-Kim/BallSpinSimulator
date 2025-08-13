@@ -155,9 +155,9 @@ bool AFrameCapture::CaptureCombinations(int pitchDeg, int rollDeg/*, FVector spi
     }
 
     SceneCapture->CaptureScene();// ¼öµ¿ Ä¸Ã³
-    //FString FileName = FString::Printf(TEXT("(%.6f, %.6f, %.6f)_%3d_%3d.png"), spinAxis.X, spinAxis.Y, spinAxis.Z, pitchDeg, rollDeg);
     FString FileName = FString::Printf(TEXT("/Pitch_Roll/%d_%d.png"), pitchDeg, rollDeg);
-
+    
+    //FString FileName = FString::Printf(TEXT("(%.6f, %.6f, %.6f)_%3d_%3d.png"), spinAxis.X, spinAxis.Y, spinAxis.Z, pitchDeg, rollDeg);
     //SaveRenderTargetToPNG(FileName);
 
     if (!RenderTarget)

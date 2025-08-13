@@ -28,12 +28,13 @@ AGolfBall::AGolfBall()
 
 	if (!HasAnyFlags(RF_ClassDefaultObject)) 
 	{
-		bool bTitleistBall = true;
+		bool bTitleistBall = false;
 
 		if (bTitleistBall)
 		{
 			GolfBallMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TitleistBall"));
 			static ConstructorHelpers::FObjectFinder<UStaticMesh> meshTitleistBall(TEXT("/Game/StarterContent/Titlelist/SM_TitleistBall"));
+			//static ConstructorHelpers::FObjectFinder<UStaticMesh> meshTitleistBall(TEXT("/Game/StarterContent/SM_TitleistBall"));
 
 			//RootComponent = GolfBallMesh;
 			if (meshTitleistBall.Object != nullptr)
