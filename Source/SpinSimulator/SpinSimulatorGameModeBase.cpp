@@ -104,6 +104,41 @@ void ASpinSimulatorGameModeBase::BeginPlay()
         }
     }
 
+    UStaticMeshComponent* MeshComp = BallActor->FindComponentByClass<UStaticMeshComponent>();
+    if (!MeshComp)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[MeshSize] No UStaticMeshComponent on %s"), *BallActor->GetName());
+        return;
+    }
+
+    UStaticMesh* Mesh = MeshComp->GetStaticMesh();
+    if (!Mesh)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[MeshSize] No UStaticMesh on %s"), *BallActor->GetName());
+        return;
+    }
+
+    // 임포트 후 에셋 자체의 순수 크기(로컬, 임포트 기준) - Unreal Unit(기본 1uu=1cm)
+    const FBox LocalBox = Mesh->GetBoundingBox();          // 에셋 로컬 공간의 AABB
+    const FVector LocalSize = LocalBox.GetSize();          // X,Y,Z 전체 길이
+    UE_LOG(LogTemp, Log, TEXT("[MeshSize][Local/Asset]   Size = (X=%.3f, Y=%.3f, Z=%.3f) cm"),LocalSize.X, LocalSize.Y, LocalSize.Z);
+    
+    //월드 축 정렬 AABB 크기(회전/스케일 모두 반영, 회전 시 축 방향에 따라 값이 커질 수 있음)
+    const FBoxSphereBounds WorldBounds = MeshComp->CalcBounds(MeshComp->GetComponentTransform());
+    const FVector WorldAABBSize = WorldBounds.GetBox().GetSize();
+    UE_LOG(LogTemp, Log, TEXT("[MeshSize][World/AABB]    Size = (X=%.3f, Y=%.3f, Z=%.3f) cm"),
+        WorldAABBSize.X, WorldAABBSize.Y, WorldAABBSize.Z);
+
+    FBoxSphereBounds WorldBounds = MeshComp->CalcBounds(MeshComp->GetComponentTransform());
+    FVector Extent = WorldBounds.BoxExtent * 2.0f; // X, Y, Z 전체 길이
+    UE_LOG(LogTemp, Log, TEXT("(WorldBounds*2)Mesh Size: X=%f, Y=%f, Z=%f"), Extent.X, Extent.Y, Extent.Z);
+
+    //회전은 무시하고, 컴포넌트(또는 부모 체인)의 월드 스케일만 곱(로컬축 기준 OBB 크기- 제작 당시 기준의 원래 모양 크기 파악용)
+    const FVector AbsWorldScale = MeshComp->GetComponentTransform().GetScale3D().GetAbs();
+    const FVector ScaledLocalOBB = LocalSize * AbsWorldScale; // 로컬 축 기준의 크기(회전 무시)
+    UE_LOG(LogTemp, Log, TEXT("[MeshSize][Local*Scale]   Size = (X=%.3f, Y=%.3f, Z=%.3f) cm (rotation ignored)"), ScaledLocalOBB.X, ScaledLocalOBB.Y, ScaledLocalOBB.Z);
+
+
     //APostProcessVolume* PPVolume = GetWorld()->SpawnActor<APostProcessVolume>(APostProcessVolume::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator);
     //if (PPVolume)
     //{
