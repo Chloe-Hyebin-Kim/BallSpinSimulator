@@ -4,7 +4,8 @@
 
 #include "CoreMinimal.h"
 
-#define BALL_LOCATION FVector(150.0, 150.0, 22.1)
+#define BALL_LOCATION FVector(0.0, 0.0, 0)
+#define CAM_LOCATION FVector(0.0, 0.0, 60)
 
 #define FRAMECOUNT 15	//사진 찍는 개수
 

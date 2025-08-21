@@ -38,7 +38,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 public:
-	void SetIsSpin(bool bTmp = false);
+	void SetIsSpin(bool bSpin, bool bDefault = false);
 	void SetSpinSpeed(float DegreesPerSecond);
 	void SetSpinAxis(const FVector& NewSpinAxis);
 
@@ -64,6 +64,9 @@ public:
 	// 회전(rx,ry,rz, 도 단위) 적용 후, 각 점의 "월드 좌표"를 계산해서 CSV 한 줄로 포맷팅
 	FString FormatCsvRow(const FString& ImageName, const FRotator& Rotator, const FSpinDOE& DotInfo, const FVector& WorldPos)const;
 
+	void CheckVertexPosition();
+	void LogUsedVerticesOnly();
+
 	// 결과 저장용
 	TArray<FVector> SpinAxes;
 
@@ -71,7 +74,8 @@ private:
 	void SetVisible(bool isVisible);
 	void AlignToSpinAxis();
 	void ScanBonesOnce();
-	
+
+
 protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere,meta = (AllowPrivateAccess = "true"))
 		bool bSpin = false;
@@ -84,8 +88,8 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (AllowPrivateAccess = "true"))
 		class UStaticMeshComponent* AxisBall;
 
-	UPROPERTY(EditAnywhere, Category="SpinLabel")
-	class USkeletalMeshComponent* BallMeshComp = nullptr;
+	//UPROPERTY(EditAnywhere, Category="SpinLabel")
+	//class USkeletalMeshComponent* BallMeshComp = nullptr;
 
 	// 본 이름 프리픽스 (FBX에서 본 이름 패턴 통일)
 	UPROPERTY(EditAnywhere, Category="SpinLabel")

@@ -35,8 +35,14 @@ protected:
     void OnCaptureCameraView(const TArray<FString>& Args);
     void OnCaptureAllCombinations(const TArray<FString>& Args);
     void OnCaptureCSV(const TArray<FString>& Args);
+    void OnCheckVertexPosition(const TArray<FString>& Args);
 
     void VirtualSpinCapture();
+    void PrepareCSV();
+    void CSVAppendLine(const FString& Line, const FString& csvAbsPath);
+
+    void DoTaskSequentially(int Index, int Max);
+    void DoSomeAsyncTask(int Index, TFunction<void()> OnComplete);
 
 protected:
     /** 골프공 액터 참조 (에디터 또는 런타임에서 설정) */

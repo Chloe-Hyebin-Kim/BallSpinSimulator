@@ -5,6 +5,11 @@
 #include "SpinSimulator.h"
 #include "Kismet/KismetMathLibrary.h"
 
+inline bool IsValidVector(const FVector& V)
+{
+	return FMath::IsFinite(V.X) && FMath::IsFinite(V.Y) && FMath::IsFinite(V.Z);
+}
+
 AGolfBall::AGolfBall()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -99,8 +104,6 @@ void AGolfBall::BeginPlay()
 
 	m_SpinAxisAsRot = FRotationMatrix::MakeFromZ(m_SpinAxisAsVec).Rotator();
 	SetActorRotation(m_SpinAxisAsRot);
-
-	FQuat actorQuat = GetActorQuat();
 }
 
 void AGolfBall::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -110,26 +113,26 @@ void AGolfBall::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void AGolfBall::ScanBonesOnce()
 {
-	Dots.Reset();
-	if (!BallMeshComp || !BallMeshComp->SkeletalMesh) return;
+	//Dots.Reset();
+	//if (!BallMeshComp || !BallMeshComp->SkeletalMesh) return;
 
-	const USkeleton* Skel = BallMeshComp->SkeletalMesh->GetSkeleton();
-	const FReferenceSkeleton& RefSkel = Skel->GetReferenceSkeleton();
-	const int32 NumBones = RefSkel.GetNum();
+	//const USkeleton* Skel = BallMeshComp->SkeletalMesh->GetSkeleton();
+	//const FReferenceSkeleton& RefSkel = Skel->GetReferenceSkeleton();
+	//const int32 NumBones = RefSkel.GetNum();
 
-	for (int32 BoneIdx = 0; BoneIdx < NumBones; ++BoneIdx)
-	{
-		const FName BoneName = RefSkel.GetBoneName(BoneIdx);
-		if (!BoneName.ToString().StartsWith(CircleBonePrefix)) continue;
+	//for (int32 BoneIdx = 0; BoneIdx < NumBones; ++BoneIdx)
+	//{
+	//	const FName BoneName = RefSkel.GetBoneName(BoneIdx);
+	//	if (!BoneName.ToString().StartsWith(CircleBonePrefix)) continue;
 
-		// 참조 포즈의 컴포넌트-로컬 변환
-		const FTransform BoneRefTM = BallMeshComp->GetBoneTransform(BoneIdx);
-		FSpinDOE Info;
-		Info.CircleId = BoneName;
-		// 본 위치를 공 로컬로 변환: 컴포넌트 기준 로컬 → 메쉬 루트 기준 로컬(동일 의미로 사용)
-		Info.LocalPos = BoneRefTM.GetLocation();
-		Dots.Add(Info);
-	}
+	//	// 참조 포즈의 컴포넌트-로컬 변환
+	//	const FTransform BoneRefTM = BallMeshComp->GetBoneTransform(BoneIdx);
+	//	FSpinDOE Info;
+	//	Info.CircleId = BoneName;
+	//	// 본 위치를 공 로컬로 변환: 컴포넌트 기준 로컬 → 메쉬 루트 기준 로컬(동일 의미로 사용)
+	//	Info.LocalPos = BoneRefTM.GetLocation();
+	//	Dots.Add(Info);
+	//}
 }
 
 FString AGolfBall::FormatCsvRow(const FString& ImageName, const FRotator& Rotator,const FSpinDOE& DotInfo, const FVector& WorldPos) const
@@ -143,6 +146,117 @@ FString AGolfBall::FormatCsvRow(const FString& ImageName, const FRotator& Rotato
 	// CSV: image,rx,ry,rz,circle_id,point_x,point_y,point_z  
 	// // UE: Roll=X, Pitch=Y, Yaw=Z (주의)
 	return FString::Printf(TEXT("%s,%d,%d,%d,%s,%.4f,%.4f,%.4f"),*ImageName,FMath::RoundToInt(Rotator.Roll),FMath::RoundToInt(Rotator.Pitch),FMath::RoundToInt(Rotator.Yaw),*DotInfo.CircleId.ToString(),	WorldPos.X, WorldPos.Y, WorldPos.Z);
+}
+
+
+void AGolfBall::CheckVertexPosition()
+{
+	if (GolfBallMesh && GolfBallMesh->GetStaticMesh())
+	{
+		FStaticMeshRenderData* RenderData = GolfBallMesh->GetStaticMesh()->GetRenderData();
+		if (RenderData && RenderData->LODResources.Num() > 0)
+		{
+			//GolfBallMesh (StaticMesh)의 로컬 좌표로부터 폴리곤(Vertex) 좌표 얻기
+			const FStaticMeshLODResources& smLODResource = RenderData->LODResources[0]; // LOD 0 사용
+			const FPositionVertexBuffer& vertexBuffer = smLODResource.VertexBuffers.PositionVertexBuffer;
+
+			for (uint32 i = 0; i < vertexBuffer.GetNumVertices(); ++i)//전체 정점 수만큼 순회
+			{
+				FVector vertexLocalPosition = vertexBuffer.VertexPosition(i); //i번째 로컬 좌표 (오직 위치x,y,z 좌표만 있음)
+				FVector vertexWorldosition = GolfBallMesh->GetComponentTransform().TransformPosition(vertexLocalPosition);//로컬 좌표를 월드 좌표로 변환
+				UE_LOG(LogTemp, Log, TEXT("Vertex [%d] LocalPos = %s, WorldPos[%d] = %s"), i, *vertexLocalPosition.ToString(), *vertexWorldosition.ToString());
+			}
+
+			//삼각형(Triangle) 인덱스 정보 얻기
+			const FRawStaticIndexBuffer& indexBuffer = smLODResource.IndexBuffer;//삼각형 구성을 위한 인덱스 배열
+
+			for (auto j = 0; j < indexBuffer.GetNumIndices(); j += 3)
+			{
+				uint32 index0 = indexBuffer.GetIndex(j);
+				uint32 index1 = indexBuffer.GetIndex(j + 1);
+				uint32 index2 = indexBuffer.GetIndex(j + 2);
+
+				if (index0 >= vertexBuffer.GetNumVertices() || index1 >= vertexBuffer.GetNumVertices() || index2 >= vertexBuffer.GetNumVertices())
+				{
+					UE_LOG(LogTemp, Error, TEXT("Invalid vertex indices at triangle %d"), j / 3);
+					continue;
+				}
+
+				//로컬 좌표(Local Space)
+				FVector v0 = vertexBuffer.VertexPosition(index0);
+				FVector v1 = vertexBuffer.VertexPosition(index1);
+				FVector v2 = vertexBuffer.VertexPosition(index2);
+				
+				//로컬 좌표(Local Space)->월드 좌표 변환(World Space)
+				FTransform meshTransform = GolfBallMesh->GetComponentTransform();
+				FVector w0 = meshTransform.TransformPosition(v0);
+				FVector w1 = meshTransform.TransformPosition(v1);
+				FVector w2 = meshTransform.TransformPosition(v2);
+
+				if (!IsValidVector(w0) || !IsValidVector(w1) || !IsValidVector(w2))
+				{
+					UE_LOG(LogTemp, Error, TEXT("Invalid WorldPos Triangle[%d] (NaN or Inf)"), j / 3);
+					continue;
+				}
+				
+				UE_LOG(LogTemp, Log, TEXT("Triangle[%d] LocalPos v0: %s ,WorldPos w0: %s"), j / 3, *v0.ToString(), *w0.ToString());
+				UE_LOG(LogTemp, Log, TEXT("Triangle[%d] LocalPos v1: %s ,WorldPos w0: %s"), j / 3, *v1.ToString(), *w1.ToString());
+				UE_LOG(LogTemp, Log, TEXT("Triangle[%d] LocalPos v2: %s ,WorldPos w0: %s"), j / 3, *v2.ToString(), *w2.ToString());
+			}
+		}
+	}
+
+}
+
+
+void AGolfBall::LogUsedVerticesOnly()
+{
+	if (GolfBallMesh && GolfBallMesh->GetStaticMesh())
+	if (!GolfBallMesh || !GolfBallMesh->GetStaticMesh())
+	{
+		UE_LOG(LogTemp, Error, TEXT("Invalid MeshComponent or StaticMesh"));
+		return;
+	}
+
+	const FStaticMeshRenderData* RenderData = GolfBallMesh->GetStaticMesh()->GetRenderData();
+	if (!RenderData || RenderData->LODResources.Num() == 0)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Invalid RenderData"));
+		return;
+	}
+
+	const int32 LODIndex = 0;
+	const FStaticMeshLODResources& LODResource = RenderData->LODResources[LODIndex];
+	const FPositionVertexBuffer& PosBuffer = LODResource.VertexBuffers.PositionVertexBuffer;
+	const FRawStaticIndexBuffer& IndexBuffer = LODResource.IndexBuffer;
+
+	const int32 VertexCount = PosBuffer.GetNumVertices();
+	const int32 IndexCount = IndexBuffer.GetNumIndices();
+
+	TSet<int32> UsedVertexIndices;
+
+	for (int32 i = 0; i < IndexCount; ++i)
+	{
+		int32 Index = IndexBuffer.GetIndex(i);
+		if (Index >= 0 && Index < VertexCount)
+		{
+			UsedVertexIndices.Add(Index);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Invalid index %d"), Index);
+		}
+	}
+
+	const FTransform MeshTransform = GolfBallMesh->GetComponentTransform();
+
+	for (int32 Index : UsedVertexIndices)
+	{
+		FVector LocalPos = PosBuffer.VertexPosition(Index);
+		FVector WorldPos = MeshTransform.TransformPosition(LocalPos);
+
+		UE_LOG(LogTemp, Log, TEXT("[Vertex %d] Local: %s, World: %s"), Index, *LocalPos.ToString(), *WorldPos.ToString());
+	}
 }
 
 void AGolfBall::Tick(float DeltaTime)
@@ -176,29 +290,24 @@ void AGolfBall::Tick(float DeltaTime)
 	
 }
 
-void AGolfBall::SetIsSpin(bool bTmp/* = false*/)
+void AGolfBall::SetIsSpin(bool onoff, bool bDefault/* = false*/)
 {
-	if (bTmp)//무조건 끄기
+	if (onoff)//스핀 켜기
 	{
-		if (bSpin){
-			bSpin =false;
+		bSpin = true;
+	} 
+	else//스핀 끄기
+	{
+		bSpin = false;
 
-			bSpin = false;//무조건 스핀 끄기
+		if (bDefault)
+		{
+			bSpin = false;
 
 			m_SpinAxisAsVec = FVector::UpVector;//(로컬 Z축 == 0,0,1)
 			m_SpinAxisAsRot = FRotationMatrix::MakeFromZ(m_SpinAxisAsVec).Rotator();
 			SetActorRotation(m_SpinAxisAsRot);
-
-			// FRotationMatrix
-			m_SpinAxisAsVec = m_InputSpinAxis.GetSafeNormal();// 반드시 정규화
-			m_SpinAxisAsRot = FRotationMatrix::MakeFromZ(m_SpinAxisAsVec).Rotator();// Z축을 주어진 방향에 정렬
-			SetActorRotation(m_SpinAxisAsRot);
-
 		}
-	} 
-	else //default
-	{
-		bSpin = !bSpin;
 	}
 }
 

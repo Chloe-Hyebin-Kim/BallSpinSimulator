@@ -49,7 +49,7 @@ void ASpinController::BeginPlay()
     // 공 회전 on/off
     IConsoleManager::Get().RegisterConsoleCommand(
         TEXT("SwitchSpin"),
-        TEXT("Switch Ball Spin"),
+        TEXT("Switch Ball Spin. 0 == false, 1 == true. [Usag: SwitchSpin 0/1]  "),
         FConsoleCommandWithArgsDelegate::CreateUObject(this, &ASpinController::OnSwitchBallSpinCommand)
     );
     UE_LOG(LogTemp, Log, TEXT("RegisterConsoleCommand.  >>>SwitchSpin"));
@@ -111,19 +111,27 @@ void ASpinController::BeginPlay()
         FConsoleCommandWithArgsDelegate::CreateUObject(this, &ASpinController::OnCaptureCSV)
     );
     UE_LOG(LogTemp, Log, TEXT("RegisterConsoleCommand.  >>>CaptureCSV"));
+
+    //CheckVertexPosition
+    IConsoleManager::Get().RegisterConsoleCommand(
+        TEXT("CheckVertexPosition"),
+        TEXT("Count all number of vertices"),
+        FConsoleCommandWithArgsDelegate::CreateUObject(this, &ASpinController::OnCheckVertexPosition)
+    );
+    UE_LOG(LogTemp, Log, TEXT("RegisterConsoleCommand.  >>>CheckVertexPosition"));
 }
 
 void ASpinController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-
-    IConsoleManager::Get().UnregisterConsoleObject(TEXT("SwitchSpin"));
-    IConsoleManager::Get().UnregisterConsoleObject(TEXT("SetAxis"));
-    IConsoleManager::Get().UnregisterConsoleObject(TEXT("SetSpinSpeed"));
-    IConsoleManager::Get().UnregisterConsoleObject(TEXT("ShowOriginAxis"));
-    IConsoleManager::Get().UnregisterConsoleObject(TEXT("ShowBallAxis"));
-    IConsoleManager::Get().UnregisterConsoleObject(TEXT("CaptureView"));
-    IConsoleManager::Get().UnregisterConsoleObject(TEXT("CaptureCombinations"));
-    IConsoleManager::Get().UnregisterConsoleObject(TEXT("CaptureCSV"));
+	IConsoleManager::Get().UnregisterConsoleObject(TEXT("UnregisterConsoleCommand SwitchSpin"));
+	IConsoleManager::Get().UnregisterConsoleObject(TEXT("UnregisterConsoleCommand SetAxis"));
+	IConsoleManager::Get().UnregisterConsoleObject(TEXT("UnregisterConsoleCommand SetSpinSpeed"));
+	IConsoleManager::Get().UnregisterConsoleObject(TEXT("UnregisterConsoleCommand ShowOriginAxis"));
+	IConsoleManager::Get().UnregisterConsoleObject(TEXT("UnregisterConsoleCommand ShowBallAxis"));
+	IConsoleManager::Get().UnregisterConsoleObject(TEXT("UnregisterConsoleCommand CaptureView"));
+	IConsoleManager::Get().UnregisterConsoleObject(TEXT("UnregisterConsoleCommand CaptureCombinations"));
+	IConsoleManager::Get().UnregisterConsoleObject(TEXT("UnregisterConsoleCommand CaptureCSV"));
+	IConsoleManager::Get().UnregisterConsoleObject(TEXT("UnregisterConsoleCommand CheckVertexPosition"));
 
     Super::EndPlay(EndPlayReason);
 }
@@ -131,11 +139,24 @@ void ASpinController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void ASpinController::OnSwitchBallSpinCommand(const TArray<FString>& Args)
 {
+    UE_LOG(LogTemp, Log, TEXT("SwitchBallSpin."));
+    
+    if (Args.Num() != 1)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Invalid number of arguments. ex)SwitchSpin 1"));
+        return;
+    }
+    
     if (!ControlledBallActor)
     {
         UE_LOG(LogTemp, Error, TEXT("BallMesh Actor is not assigned."));
     }
-    ControlledBallActor->SetIsSpin();
+
+    int bSpin = FCString::Atoi(*Args[0]);
+    ControlledBallActor->SetIsSpin((bool)bSpin,false);
+    // 출력 또는 저장
+    FString rst = (bSpin==1)? "ON":"OFF";
+    UE_LOG(LogTemp, Log, TEXT("Spin turn %s."), *rst);
 }
 
 void ASpinController::OnSetSpinSpeedCommand(const TArray<FString>& Args)
@@ -195,9 +216,7 @@ void ASpinController::OnShowBallAxisCommand(const TArray<FString>& Args)
     float xDeg = FMath::RadiansToDegrees(xRad);
 	float yDeg = FMath::RadiansToDegrees(yRad);
 	float zDeg = FMath::RadiansToDegrees(zRad);
-
-
-
+    UE_LOG(LogTemp, Log, TEXT("xDeg: %.6f, yDeg: %.6f, zDeg: %.6f"), xDeg, yDeg, zDeg);
 }
 
 void ASpinController::OnCaptureCameraView(const TArray<FString>& Args)
@@ -205,7 +224,6 @@ void ASpinController::OnCaptureCameraView(const TArray<FString>& Args)
     UE_LOG(LogTemp, Log, TEXT("OnCaptureCameraView."));
     //ControlledBallActor->CaptureFrame();
 
-   
      // AFrameCapture 자동 검색     
      AFrameCapture* CaptureActor = Cast<AFrameCapture>(UGameplayStatics::GetActorOfClass(GetWorld(), AFrameCapture::StaticClass()));
     if (!CaptureActor)
@@ -213,7 +231,7 @@ void ASpinController::OnCaptureCameraView(const TArray<FString>& Args)
         UE_LOG(LogTemp, Warning, TEXT("Can not find CaptureActor."));
     }
 
-    ControlledBallActor->SetIsSpin(true);//무조건 스핀 끄기
+    ControlledBallActor->SetIsSpin(false,true);//무조건 스핀 끄기
     FVector vecInputSpinAxis = ControlledBallActor->GetInputSpinAxis();
     float inputRPM = ControlledBallActor->GetInputRPM();
 
@@ -244,7 +262,7 @@ void ASpinController::OnCaptureAllCombinations(const TArray<FString>& Args)
         UE_LOG(LogTemp, Warning, TEXT("Can not find CaptureActor."));
     }
 
-    ControlledBallActor->SetIsSpin(true);//무조건 스핀 끄기
+    ControlledBallActor->SetIsSpin(false,true);//무조건 스핀 끄기
 
     bool bDegree1 = true;
 
@@ -325,7 +343,7 @@ void ASpinController::OnCaptureCSV(const TArray<FString>& Args)
         UE_LOG(LogTemp, Warning, TEXT("Can not find CaptureActor."));
     }
 
-     ControlledBallActor->SetIsSpin(true);//무조건 스핀 끄기
+     ControlledBallActor->SetIsSpin(false,true);//무조건 스핀 끄기
 
     int t = 1;
     for (int i = 0; i < m_arrRPM.Num(); ++i)
@@ -395,7 +413,7 @@ void ASpinController::VirtualSpinCapture()
         UE_LOG(LogTemp, Warning, TEXT("Can not find CaptureActor."));
     }
 
-    ControlledBallActor->SetIsSpin(true);//무조건 스핀 끄기
+    ControlledBallActor->SetIsSpin(false,true);//무조건 스핀 끄기
 
     int t = 1;
     for (int i = 0; i < 1; ++i)
@@ -424,4 +442,67 @@ void ASpinController::VirtualSpinCapture()
 
     }
    
+}
+
+void ASpinController::OnCheckVertexPosition(const TArray<FString>& Args)
+{
+    UE_LOG(LogTemp, Log, TEXT("CheckVertexPosition."));
+
+    ControlledBallActor->SetIsSpin(false,true);//무조건 스핀 끄기
+    //ControlledBallActor->CheckVertexPosition();
+    ControlledBallActor->LogUsedVerticesOnly();
+}
+
+void ASpinController::PrepareCSV()
+{ 
+    // CSV 경로 준비
+    FString csvAbsPath = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("SpinLabels/labels.csv"));
+    IFileManager::Get().MakeDirectory(*FPaths::GetPath(csvAbsPath), /*Tree*/true);
+
+    // 헤더 1회 기록
+    const FString header = TEXT("image,rx,ry,rz,circle_id,point_x,point_y,point_z");
+    FFileHelper::SaveStringToFile(header + LINE_TERMINATOR, *csvAbsPath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), FILEWRITE_Append);
+    //CSVAppendLine(header,csvAbsPath);
+
+    FString line ="";
+    CSVAppendLine(line,csvAbsPath);
+}
+
+void ASpinController::CSVAppendLine(const FString& Line, const FString& csvAbsPath)
+{
+    FFileHelper::SaveStringToFile(Line + LINE_TERMINATOR, *csvAbsPath,FFileHelper::EEncodingOptions::AutoDetect,&IFileManager::Get(), FILEWRITE_Append);
+}
+
+
+void ASpinController::DoTaskSequentially(int Index, int Max)
+{
+    if (Index >= Max)
+    {
+        UE_LOG(LogTemp, Log, TEXT("All tasks finished."));
+        return;
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("Processing Index %d"), Index);
+
+    // 예: 타이머로 딜레이 후 다음 루프
+    GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda([=]()
+        {
+            // 실제 처리 로직, 비동기 처리 후 다음 반복
+            DoSomeAsyncTask(Index, [=]()
+                {
+                    // 다음 인덱스로 재귀 호출
+                    DoTaskSequentially(Index + 1, Max);
+                });
+        }));
+}
+
+void ASpinController::DoSomeAsyncTask(int Index, TFunction<void()> OnComplete)
+{
+    // 예시: 1초 딜레이 후 콜백 호출
+    FTimerHandle TimerHandle;
+    GetWorld()->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateLambda([=]()
+        {
+            UE_LOG(LogTemp, Log, TEXT("Finished async task for index %d"), Index);
+            OnComplete(); // 완료 시 콜백
+        }), 1.0f, false);
 }
