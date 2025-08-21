@@ -41,6 +41,19 @@ AFrameCapture::AFrameCapture()
         SceneCapture->bCaptureEveryFrame = false; // 매 프레임 캡처할지 여부
         SceneCapture->bCaptureOnMovement = false; // 위치,회전 변화 시 자동 캡처 여부
     }
+
+    bool bAI= true;
+    FString folderName ="";
+    if (bAI)
+    {
+        folderName = FString::Printf(TEXT("/SpinSimulator_AI/"));
+    } 
+    else
+    {
+        folderName = FString::Printf(TEXT("/SpinSimulator/"));
+	}
+
+    FolderDir = FPaths::ProjectSavedDir() + folderName;
 }
 
 AFrameCapture::~AFrameCapture()
@@ -122,8 +135,6 @@ void AFrameCapture::CaptureAndSave(int idx, FVector spinAxis, float rpm)
     }
 
 	SceneCapture->CaptureScene();// 수동 캡처
-	FString fileName = FString::Printf(TEXT("/SpinAxis/(%d,%d,%d)_%dRPM/Frame%02d.png"), (int)spinAxis.X, (int)spinAxis.Y, (int)spinAxis.Z,(int)rpm, idx);
-    
     FTextureRenderTargetResource* RTResource = RenderTarget->GameThread_GetRenderTargetResource();
 
     if (!RTResource)
@@ -138,15 +149,16 @@ void AFrameCapture::CaptureAndSave(int idx, FVector spinAxis, float rpm)
     // PNG로 인코딩
     TArray<uint8> PNGData;
     FImageUtils::CompressImageArray(RenderTarget->SizeX, RenderTarget->SizeY, OutBMP, PNGData);
-
+  
     // 파일 경로 지정
-    FString AbsolutePath = FPaths::ProjectSavedDir() + fileName;
-    FFileHelper::SaveArrayToFile(PNGData, *AbsolutePath);
+    FString fileName = FString::Printf(TEXT("(%f,%f,%f)_%dRPM/Frame%02d.png"), spinAxis.X, spinAxis.Y, spinAxis.Z, (int)rpm, idx);
+    FString absolutePath = FolderDir + fileName;
+    FFileHelper::SaveArrayToFile(PNGData, *absolutePath);
 
-    UE_LOG(LogTemp, Log, TEXT("Saved image to: %s"), *AbsolutePath);
+    UE_LOG(LogTemp, Log, TEXT("Saved image to: %s"), *absolutePath);
 }
 
-void AFrameCapture::CaptureAndSave_AI(int idx, FVector spinAxis, float rpm)
+void AFrameCapture::CaptureAndSave_CSV(int idx, FVector spinAxis, float rpm)
 {
     if (!RenderTarget)
     {
@@ -161,8 +173,6 @@ void AFrameCapture::CaptureAndSave_AI(int idx, FVector spinAxis, float rpm)
     }
 
     SceneCapture->CaptureScene();// 수동 캡처
-    FString fileName = FString::Printf(TEXT("/SpinAxis_AI/%.1fRPM_(%f,%f,%f)/Frame%02d.png"), rpm, spinAxis.X, spinAxis.Y, spinAxis.Z,  idx);
-
     FTextureRenderTargetResource* RTResource = RenderTarget->GameThread_GetRenderTargetResource();
 
     if (!RTResource)
@@ -179,10 +189,11 @@ void AFrameCapture::CaptureAndSave_AI(int idx, FVector spinAxis, float rpm)
     FImageUtils::CompressImageArray(RenderTarget->SizeX, RenderTarget->SizeY, OutBMP, PNGData);
 
     // 파일 경로 지정
-    FString AbsolutePath = FPaths::ProjectSavedDir() + fileName;
-    FFileHelper::SaveArrayToFile(PNGData, *AbsolutePath);
 
-    UE_LOG(LogTemp, Log, TEXT("Saved image to: %s"), *AbsolutePath);
+    FString fileName = FString::Printf(TEXT("SpinAxis_IMG/%.1fRPM_(%f,%f,%f)/Frame%02d.png"), rpm, spinAxis.X, spinAxis.Y, spinAxis.Z, idx);
+    FString absolutePath = FolderDir + fileName;
+    FFileHelper::SaveArrayToFile(PNGData, *absolutePath);
+    UE_LOG(LogTemp, Log, TEXT("Saved image to: %s"), *absolutePath);
 }
 
 bool AFrameCapture::CaptureCombinations(int pitchDeg, int rollDeg/*, FVector spinAxis*/)
@@ -194,7 +205,6 @@ bool AFrameCapture::CaptureCombinations(int pitchDeg, int rollDeg/*, FVector spi
     }
 
     SceneCapture->CaptureScene();// 수동 캡처
-    FString FileName = FString::Printf(TEXT("/Pitch_Roll/%d_%d.png"), pitchDeg, rollDeg);
     
     //FString FileName = FString::Printf(TEXT("(%.6f, %.6f, %.6f)_%3d_%3d.png"), spinAxis.X, spinAxis.Y, spinAxis.Z, pitchDeg, rollDeg);
     //SaveRenderTargetToPNG(FileName);
@@ -221,12 +231,14 @@ bool AFrameCapture::CaptureCombinations(int pitchDeg, int rollDeg/*, FVector spi
     FImageUtils::CompressImageArray(RenderTarget->SizeX, RenderTarget->SizeY, OutBMP, PNGData);
 
     // 파일 경로 지정
-    FString AbsolutePath = FPaths::ProjectSavedDir() + FileName;
-    bool rerult = FFileHelper::SaveArrayToFile(PNGData, *AbsolutePath);
+
+    FString fileName = FString::Printf(TEXT("Pitch_Roll/%d_%d.png"), pitchDeg, rollDeg);
+    FString absolutePath = FolderDir + fileName;
+    bool rerult = FFileHelper::SaveArrayToFile(PNGData, *absolutePath);
     
 	/* if (rerult)
 	 {
-		 UE_LOG(LogTemp, Log, TEXT("Saved image to: %s"), *AbsolutePath);
+		 UE_LOG(LogTemp, Log, TEXT("Saved image to: %s"), *absolutePath);
 	 }*/
 
     return rerult;
@@ -274,8 +286,8 @@ void AFrameCapture::SaveRenderTargetToPNG(const FString& fileName)
     FImageUtils::CompressImageArray(RenderTarget->SizeX, RenderTarget->SizeY, OutBMP, PNGData);
 
     // 파일 경로 지정
-    FString AbsolutePath = FPaths::ProjectSavedDir() + fileName;
-    FFileHelper::SaveArrayToFile(PNGData, *AbsolutePath);
+    FString absolutePath = FPaths::ProjectSavedDir() + fileName;
+    FFileHelper::SaveArrayToFile(PNGData, *absolutePath);
 
-    UE_LOG(LogTemp, Log, TEXT("Saved image to: %s"), *AbsolutePath);
+    UE_LOG(LogTemp, Log, TEXT("Saved image to: %s"), *absolutePath);
 }

@@ -56,6 +56,7 @@ AGolfBall::AGolfBall()
 		{
 			GolfBallMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SM_GolfzonParkBall"));
 			static ConstructorHelpers::FObjectFinder<UStaticMesh> meshTitleistBall(TEXT("/Game/StarterContent/GolfzonParkBall/SM_GolfzonPark_Ball"));
+			//static ConstructorHelpers::FObjectFinder<UStaticMesh> meshTitleistBall(TEXT("/Game/StarterContent/SM_MERGED_SM_TitleistBall_2"));
 			if (meshTitleistBall.Object != nullptr)
 			{
 
@@ -105,6 +106,43 @@ void AGolfBall::BeginPlay()
 void AGolfBall::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
+}
+
+void AGolfBall::ScanBonesOnce()
+{
+	Dots.Reset();
+	if (!BallMeshComp || !BallMeshComp->SkeletalMesh) return;
+
+	const USkeleton* Skel = BallMeshComp->SkeletalMesh->GetSkeleton();
+	const FReferenceSkeleton& RefSkel = Skel->GetReferenceSkeleton();
+	const int32 NumBones = RefSkel.GetNum();
+
+	for (int32 BoneIdx = 0; BoneIdx < NumBones; ++BoneIdx)
+	{
+		const FName BoneName = RefSkel.GetBoneName(BoneIdx);
+		if (!BoneName.ToString().StartsWith(CircleBonePrefix)) continue;
+
+		// 참조 포즈의 컴포넌트-로컬 변환
+		const FTransform BoneRefTM = BallMeshComp->GetBoneTransform(BoneIdx);
+		FSpinDOE Info;
+		Info.CircleId = BoneName;
+		// 본 위치를 공 로컬로 변환: 컴포넌트 기준 로컬 → 메쉬 루트 기준 로컬(동일 의미로 사용)
+		Info.LocalPos = BoneRefTM.GetLocation();
+		Dots.Add(Info);
+	}
+}
+
+FString AGolfBall::FormatCsvRow(const FString& ImageName, const FRotator& Rotator,const FSpinDOE& DotInfo, const FVector& WorldPos) const
+{
+
+	/*Info.LocalPos는 공 로컬 좌표계의 점 중심.
+최종 CSV는 보통 카메라 / 월드 좌표계에서의 점 위치가 유용하므로 B에서 회전 적용 후 WorldPos로 기록한다.
+만약 라벨러가 공-로컬 좌표(회전 전 기준) 을 요구하면 Info.LocalPos를 그대로 저장하면 된다(다만 예시 CSV처럼 rx, ry, rz를 함께 저장)*/
+
+
+	// CSV: image,rx,ry,rz,circle_id,point_x,point_y,point_z  
+	// // UE: Roll=X, Pitch=Y, Yaw=Z (주의)
+	return FString::Printf(TEXT("%s,%d,%d,%d,%s,%.4f,%.4f,%.4f"),*ImageName,FMath::RoundToInt(Rotator.Roll),FMath::RoundToInt(Rotator.Pitch),FMath::RoundToInt(Rotator.Yaw),*DotInfo.CircleId.ToString(),	WorldPos.X, WorldPos.Y, WorldPos.Z);
 }
 
 void AGolfBall::Tick(float DeltaTime)
@@ -219,8 +257,24 @@ void AGolfBall::AlignToSpinAxis()
 
 }
 
+void AGolfBall::VirtualSpinCapture(AFrameCapture* CaptureActor, const FVector spinAxis, const float rpm, int idx)
+{
+	//FVector(0.f, 0.f, 1.f)으로 정렬
+	SetActorRotation(FRotationMatrix::MakeFromZ(FVector::UpVector).Rotator());//FVector(0.f, 0.f, 1.f)으로 정렬
 
+	//이후에 다시 축 세팅
+	const FVector axisNorm = spinAxis.GetSafeNormal();// 반드시 정규화
+	FRotator axisAsRot = FRotationMatrix::MakeFromZ(axisNorm).Rotator();// Z축을 주어진 방향에 정렬
+	SetActorRotation(axisAsRot);
 
+	float angleDeg = rpm * RPM2DPS * DPS2FPS * idx; //RPM -> DegreesPerSecond -> Degrees Per Frame
+	float angleRad = FMath::DegreesToRadians(angleDeg);
+
+	FQuat rotationQuat = FQuat(axisNorm, angleRad);
+	AddActorWorldRotation(rotationQuat, false, nullptr, ETeleportType::None);
+
+	CaptureActor->CaptureAndSave_CSV(idx, axisNorm, rpm);
+}
 
 void AGolfBall::RotateBallSpinAxis(int pitchDeg, int rollDeg)
 {

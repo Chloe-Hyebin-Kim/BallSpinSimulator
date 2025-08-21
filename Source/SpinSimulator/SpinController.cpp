@@ -325,9 +325,9 @@ void ASpinController::OnCaptureCSV(const TArray<FString>& Args)
         UE_LOG(LogTemp, Warning, TEXT("Can not find CaptureActor."));
     }
 
-    ControlledBallActor->SetIsSpin(true);//무조건 스핀 끄기
+     ControlledBallActor->SetIsSpin(true);//무조건 스핀 끄기
 
-    int t =1;
+    int t = 1;
     for (int i = 0; i < m_arrRPM.Num(); ++i)
     {
         for (int j = 1; j <= 1000; ++j)
@@ -335,20 +335,93 @@ void ASpinController::OnCaptureCSV(const TArray<FString>& Args)
             FTimerHandle timerHandle;
             FTimerDelegate delayCommandDelegate = FTimerDelegate::CreateLambda([=]()
                 {
-                    FVector SpinAxis = m_arrSpinAxis[i];
+                    FVector SpinAxis = m_arrSpinAxis[i].GetSafeNormal();
                     ControlledBallActor->SetSpinAxis(SpinAxis);
 
                     float AngleDeg = m_arrRPM[i] * RPM2DPS * DPS2FPS * j; //RPM -> DegreesPerSecond -> Degrees Per Frame
                     float AngleRad = FMath::DegreesToRadians(AngleDeg);
-					FQuat rotationQuat = FQuat(SpinAxis, AngleRad);
-					ControlledBallActor->AddActorWorldRotation(rotationQuat, false, nullptr, ETeleportType::None);
+                    FQuat rotationQuat = FQuat(SpinAxis, AngleRad);
+                    ControlledBallActor->AddActorWorldRotation(rotationQuat, false, nullptr, ETeleportType::None);
 
-                    CaptureActor->CaptureAndSave_AI(j, SpinAxis, m_arrRPM[i]);
+                    CaptureActor->CaptureAndSave_CSV(j, SpinAxis, m_arrRPM[i]);
                 });
             GetWorld()->GetTimerManager().SetTimer(timerHandle, delayCommandDelegate, 0.1f * t, false);
 
             ++t;
         }
+    }
+
+
+   /*
+    
+      int t = 1;
+    for (int i = 0; i <m_arrRPM.Num(); ++i)
+    {
+        for (int j = 1; j <= 1000; ++j)
+        { 
+            FTimerHandle timerHandle;
+            FTimerDelegate delayCommandDelegate = FTimerDelegate::CreateLambda([=]()
+                {
+					const FVector spinAxis = m_arrSpinAxis[i];
+					const FVector AxisN = spinAxis.GetSafeNormal();
+                    ControlledBallActor->SetSpinAxis(spinAxis);
+
+                    const float rpm = m_arrRPM[i];
+                    const float degPerFrame = (rpm * 0.003);// rpm* RPM2DPS* DPS2FPS* j;   //(RPM -> DegreesPerSecond -> Degrees Per Frame)
+                    float radPerFrame = FMath::DegreesToRadians(degPerFrame);
+                    const FQuat dQuat(AxisN, radPerFrame); // 증분 회전
+                    ControlledBallActor->AddActorWorldRotation(dQuat, false, nullptr, ETeleportType::None);
+                    CaptureActor->CaptureAndSave_CSV(j, spinAxis, rpm);
+                    UE_LOG(LogTemp, Log, TEXT("[j=%d]  %.4f(deg)"), j, degPerFrame );
+        });
+        GetWorld()->GetTimerManager().SetTimer(timerHandle, delayCommandDelegate, 0.1f * t, false);
+
+        ++t;
+        }
+        
+    }
+    
+    */
+}
+
+
+void ASpinController::VirtualSpinCapture()
+{
+    UE_LOG(LogTemp, Log, TEXT("VirtualSpinCapture."));
+
+    AFrameCapture* CaptureActor = Cast<AFrameCapture>(UGameplayStatics::GetActorOfClass(GetWorld(), AFrameCapture::StaticClass()));
+    if (!CaptureActor)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Can not find CaptureActor."));
+    }
+
+    ControlledBallActor->SetIsSpin(true);//무조건 스핀 끄기
+
+    int t = 1;
+    for (int i = 0; i < 1; ++i)
+    {
+        for (int j = 1; j <= 1000; ++j)
+        {
+            FTimerHandle timerHandle;
+            FTimerDelegate delayCommandDelegate = FTimerDelegate::CreateLambda([=]()
+                {
+                    const FVector spinAxis = m_arrSpinAxis[i];
+                    ControlledBallActor->SetSpinAxis(spinAxis);
+                    const FVector AxisN = spinAxis.GetSafeNormal();
+                    const float rpm = m_arrRPM[i];
+                    const float degPerFrame = (rpm * 0.003) * j;// rpm* RPM2DPS* DPS2FPS* j;   //(RPM -> DegreesPerSecond -> Degrees Per Frame)
+                    float radPerFrame = FMath::DegreesToRadians(degPerFrame);
+                    const FQuat dQuat(AxisN, radPerFrame); // 증분 회전
+                    ControlledBallActor->AddActorWorldRotation(dQuat, false, nullptr, ETeleportType::None);
+                    // 캡처 (필요시 렌더 플러시 포함해 안정화)
+                    CaptureActor->CaptureAndSave_CSV(j, spinAxis, rpm);
+                    UE_LOG(LogTemp, Log, TEXT("[j=%d]  %.4f(deg)"), j, degPerFrame);
+                });
+            GetWorld()->GetTimerManager().SetTimer(timerHandle, delayCommandDelegate, 0.1f * t, false);
+
+            ++t;
+        }
+
     }
    
 }

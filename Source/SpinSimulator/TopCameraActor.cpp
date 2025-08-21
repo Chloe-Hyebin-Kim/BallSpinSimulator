@@ -18,7 +18,7 @@ ATopCameraActor::ATopCameraActor()
 
     // 위에서 아래를 향하게 초기 설정
     FVector camLocation = BALL_LOCATION;
-    camLocation.Z=60.f;
+    camLocation.Z += 60.0f;
     TopCameraComponent->SetRelativeLocation(camLocation); // 공보다 위
     TopCameraComponent->SetRelativeRotation(FRotator(-90.f, 0.f, 0.f)); // 아래를 향함
     //TopCameraComponent->SetFieldOfView(23);

@@ -129,7 +129,7 @@ void ASpinSimulatorGameModeBase::BeginPlay()
     UE_LOG(LogTemp, Log, TEXT("[MeshSize][World/AABB]    Size = (X=%.3f, Y=%.3f, Z=%.3f) cm"),
         WorldAABBSize.X, WorldAABBSize.Y, WorldAABBSize.Z);
 
-    FBoxSphereBounds WorldBounds = MeshComp->CalcBounds(MeshComp->GetComponentTransform());
+    //FBoxSphereBounds WorldBounds = MeshComp->CalcBounds(MeshComp->GetComponentTransform());
     FVector Extent = WorldBounds.BoxExtent * 2.0f; // X, Y, Z 전체 길이
     UE_LOG(LogTemp, Log, TEXT("(WorldBounds*2)Mesh Size: X=%f, Y=%f, Z=%f"), Extent.X, Extent.Y, Extent.Z);
 
