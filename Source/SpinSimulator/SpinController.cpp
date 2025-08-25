@@ -38,7 +38,7 @@ void ASpinController::BeginPlay()
     }
 
      UE_LOG(LogTemp, Log, TEXT("CheckVertexPosition."));
-     ControlledBallActor->LogUsedVerticesOnly();
+     ControlledBallActor->CheckVertexPosition();
     
     ////Ä«¸Þ¶ó Å½»ö ÈÄ ºä ¼³Á¤
     // ATopCameraActor* TopCam =  Cast<ATopCameraActor>(UGameplayStatics::GetActorOfClass(GetWorld(), ATopCameraActor::StaticClass()));
@@ -451,11 +451,11 @@ void ASpinController::OnCheckVertexPosition(const TArray<FString>& Args)
 {
     ControlledBallActor->SetIsSpin(false,true);//¹«Á¶°Ç ½ºÇÉ ²ô±â
     //ControlledBallActor->CheckVertexPosition();
-    //ControlledBallActor->LogUsedVerticesOnly();
+
     
 
     UE_LOG(LogTemp, Log, TEXT("DrawUsedVertices."));
-    ControlledBallActor->LogAndDrawUsedVertices();
+    ControlledBallActor->DrawUsedVertices();
 }
 
 void ASpinController::PrepareCSV()

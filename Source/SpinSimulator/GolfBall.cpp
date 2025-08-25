@@ -151,72 +151,69 @@ FString AGolfBall::FormatCsvRow(const FString& ImageName, const FRotator& Rotato
 
 void AGolfBall::CheckVertexPosition()
 {
+	//if (GolfBallMesh && GolfBallMesh->GetStaticMesh())
+	//{
+	//	FStaticMeshRenderData* RenderData = GolfBallMesh->GetStaticMesh()->GetRenderData();
+	//	if (RenderData && RenderData->LODResources.Num() > 0)
+	//	{
+	//		//GolfBallMesh (StaticMesh)의 로컬 좌표로부터 폴리곤(Vertex) 좌표 얻기
+	//		const FStaticMeshLODResources& smLODResource = RenderData->LODResources[0]; // LOD 0 사용
+	//		const FPositionVertexBuffer& vertexBuffer = smLODResource.VertexBuffers.PositionVertexBuffer;
+
+	//		for (uint32 i = 0; i < vertexBuffer.GetNumVertices(); ++i)//전체 정점 수만큼 순회
+	//		{
+	//			FVector vertexLocalPosition = vertexBuffer.VertexPosition(i); //i번째 로컬 좌표 (오직 위치x,y,z 좌표만 있음)
+	//			FVector vertexWorldosition = GolfBallMesh->GetComponentTransform().TransformPosition(vertexLocalPosition);//로컬 좌표를 월드 좌표로 변환
+	//			UE_LOG(LogTemp, Log, TEXT("Vertex [%d] LocalPos = %s, WorldPos[%d] = %s"), i, *vertexLocalPosition.ToString(), *vertexWorldosition.ToString());
+	//		}
+
+	//		//삼각형(Triangle) 인덱스 정보 얻기
+	//		const FRawStaticIndexBuffer& indexBuffer = smLODResource.IndexBuffer;//삼각형 구성을 위한 인덱스 배열
+
+	//		for (auto j = 0; j < indexBuffer.GetNumIndices(); j += 3)
+	//		{
+	//			uint32 index0 = indexBuffer.GetIndex(j);
+	//			uint32 index1 = indexBuffer.GetIndex(j + 1);
+	//			uint32 index2 = indexBuffer.GetIndex(j + 2);
+
+	//			if (index0 >= vertexBuffer.GetNumVertices() || index1 >= vertexBuffer.GetNumVertices() || index2 >= vertexBuffer.GetNumVertices())
+	//			{
+	//				UE_LOG(LogTemp, Error, TEXT("Invalid vertex indices at triangle %d"), j / 3);
+	//				continue;
+	//			}
+
+	//			//로컬 좌표(Local Space)
+	//			FVector v0 = vertexBuffer.VertexPosition(index0);
+	//			FVector v1 = vertexBuffer.VertexPosition(index1);
+	//			FVector v2 = vertexBuffer.VertexPosition(index2);
+	//			
+	//			//로컬 좌표(Local Space)->월드 좌표 변환(World Space)
+	//			FTransform meshTransform = GolfBallMesh->GetComponentTransform();
+	//			FVector w0 = meshTransform.TransformPosition(v0);
+	//			FVector w1 = meshTransform.TransformPosition(v1);
+	//			FVector w2 = meshTransform.TransformPosition(v2);
+
+	//			if (!IsValidVector(w0) || !IsValidVector(w1) || !IsValidVector(w2))
+	//			{
+	//				UE_LOG(LogTemp, Error, TEXT("Invalid WorldPos Triangle[%d] (NaN or Inf)"), j / 3);
+	//				continue;
+	//			}
+	//			
+	//			UE_LOG(LogTemp, Log, TEXT("Triangle[%d] LocalPos v0: %s ,WorldPos w0: %s"), j / 3, *v0.ToString(), *w0.ToString());
+	//			UE_LOG(LogTemp, Log, TEXT("Triangle[%d] LocalPos v1: %s ,WorldPos w0: %s"), j / 3, *v1.ToString(), *w1.ToString());
+	//			UE_LOG(LogTemp, Log, TEXT("Triangle[%d] LocalPos v2: %s ,WorldPos w0: %s"), j / 3, *v2.ToString(), *w2.ToString());
+	//		}
+	//	}
+	//}
+
+
+
 	if (GolfBallMesh && GolfBallMesh->GetStaticMesh())
-	{
-		FStaticMeshRenderData* RenderData = GolfBallMesh->GetStaticMesh()->GetRenderData();
-		if (RenderData && RenderData->LODResources.Num() > 0)
+		if (!GolfBallMesh || !GolfBallMesh->GetStaticMesh())
 		{
-			//GolfBallMesh (StaticMesh)의 로컬 좌표로부터 폴리곤(Vertex) 좌표 얻기
-			const FStaticMeshLODResources& smLODResource = RenderData->LODResources[0]; // LOD 0 사용
-			const FPositionVertexBuffer& vertexBuffer = smLODResource.VertexBuffers.PositionVertexBuffer;
-
-			for (uint32 i = 0; i < vertexBuffer.GetNumVertices(); ++i)//전체 정점 수만큼 순회
-			{
-				FVector vertexLocalPosition = vertexBuffer.VertexPosition(i); //i번째 로컬 좌표 (오직 위치x,y,z 좌표만 있음)
-				FVector vertexWorldosition = GolfBallMesh->GetComponentTransform().TransformPosition(vertexLocalPosition);//로컬 좌표를 월드 좌표로 변환
-				UE_LOG(LogTemp, Log, TEXT("Vertex [%d] LocalPos = %s, WorldPos[%d] = %s"), i, *vertexLocalPosition.ToString(), *vertexWorldosition.ToString());
-			}
-
-			//삼각형(Triangle) 인덱스 정보 얻기
-			const FRawStaticIndexBuffer& indexBuffer = smLODResource.IndexBuffer;//삼각형 구성을 위한 인덱스 배열
-
-			for (auto j = 0; j < indexBuffer.GetNumIndices(); j += 3)
-			{
-				uint32 index0 = indexBuffer.GetIndex(j);
-				uint32 index1 = indexBuffer.GetIndex(j + 1);
-				uint32 index2 = indexBuffer.GetIndex(j + 2);
-
-				if (index0 >= vertexBuffer.GetNumVertices() || index1 >= vertexBuffer.GetNumVertices() || index2 >= vertexBuffer.GetNumVertices())
-				{
-					UE_LOG(LogTemp, Error, TEXT("Invalid vertex indices at triangle %d"), j / 3);
-					continue;
-				}
-
-				//로컬 좌표(Local Space)
-				FVector v0 = vertexBuffer.VertexPosition(index0);
-				FVector v1 = vertexBuffer.VertexPosition(index1);
-				FVector v2 = vertexBuffer.VertexPosition(index2);
-				
-				//로컬 좌표(Local Space)->월드 좌표 변환(World Space)
-				FTransform meshTransform = GolfBallMesh->GetComponentTransform();
-				FVector w0 = meshTransform.TransformPosition(v0);
-				FVector w1 = meshTransform.TransformPosition(v1);
-				FVector w2 = meshTransform.TransformPosition(v2);
-
-				if (!IsValidVector(w0) || !IsValidVector(w1) || !IsValidVector(w2))
-				{
-					UE_LOG(LogTemp, Error, TEXT("Invalid WorldPos Triangle[%d] (NaN or Inf)"), j / 3);
-					continue;
-				}
-				
-				UE_LOG(LogTemp, Log, TEXT("Triangle[%d] LocalPos v0: %s ,WorldPos w0: %s"), j / 3, *v0.ToString(), *w0.ToString());
-				UE_LOG(LogTemp, Log, TEXT("Triangle[%d] LocalPos v1: %s ,WorldPos w0: %s"), j / 3, *v1.ToString(), *w1.ToString());
-				UE_LOG(LogTemp, Log, TEXT("Triangle[%d] LocalPos v2: %s ,WorldPos w0: %s"), j / 3, *v2.ToString(), *w2.ToString());
-			}
+			UE_LOG(LogTemp, Error, TEXT("Invalid MeshComponent or StaticMesh"));
+			return;
 		}
-	}
-
-}
-
-
-void AGolfBall::LogUsedVerticesOnly()
-{
-	if (GolfBallMesh && GolfBallMesh->GetStaticMesh())
-	if (!GolfBallMesh || !GolfBallMesh->GetStaticMesh())
-	{
-		UE_LOG(LogTemp, Error, TEXT("Invalid MeshComponent or StaticMesh"));
-		return;
-	}
 
 	const FStaticMeshRenderData* RenderData = GolfBallMesh->GetStaticMesh()->GetRenderData();
 	if (!RenderData || RenderData->LODResources.Num() == 0)
@@ -256,11 +253,22 @@ void AGolfBall::LogUsedVerticesOnly()
 		FVector WorldPos = MeshTransform.TransformPosition(LocalPos);
 
 		UE_LOG(LogTemp, Log, TEXT("[Vertex %d] Local: %s, World: %s"), Index, *LocalPos.ToString(), *WorldPos.ToString());
-		
+
 		if (i % 1800 == 0)
 		{
 			VertexLocalPos.Add(LocalPos);
 			VertexWorldPos.Add(WorldPos);
+
+			FSpinDOE tmpDot = FSpinDOE();
+			if (i > 9) {
+				tmpDot.CircleId = FName(*FString::Printf(TEXT("circle_%d"), i));
+			}
+			else {
+				tmpDot.CircleId = FName(*FString::Printf(TEXT("circle_0%d"), i));
+			}
+			tmpDot.LocalPos = LocalPos;
+			tmpDot.WorldPos = WorldPos;
+			Dots.Add(tmpDot);
 		}
 
 	}
@@ -277,8 +285,14 @@ void AGolfBall::LogUsedVerticesOnly()
 }
 
 
+void AGolfBall::LogUsedVerticesOnly()
+{
 
-void AGolfBall::LogAndDrawUsedVertices()
+}
+
+
+
+void AGolfBall::DrawUsedVertices()
 {
 	UE_LOG(LogTemp, Log, TEXT("DrawUsedVertices."));
 
@@ -287,9 +301,9 @@ void AGolfBall::LogAndDrawUsedVertices()
 	{
 		FVector LocalPos = VertexLocalPos[i];
 		FVector WorldPos = VertexWorldPos[i];
-
+		
 		UE_LOG(LogTemp, Log, TEXT("[Draw Vertex %d] Local: %s, World: %s"), i, *LocalPos.ToString(), *WorldPos.ToString());
-
+		
 		// 2mm 빨간색 구 그리기
 		//DrawDebugCircle(World,WorldPos,0.1f,32,FColor::Red,false, 2.0f,0 );
 		DrawDebugSphere(World, WorldPos, 0.01f, 32, FColor::Red, false, 10.0f, 0);

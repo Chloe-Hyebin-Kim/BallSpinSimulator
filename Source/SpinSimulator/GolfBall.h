@@ -20,7 +20,8 @@ struct FSpinDOE
 {
 	GENERATED_BODY()
 	UPROPERTY() FName CircleId;     // e.g., "circle_001"
-	UPROPERTY() FVector LocalPos;   // Ball local (skeletal component space at ref-pose)
+	UPROPERTY() FVector LocalPos;
+	UPROPERTY() FVector WorldPos;
 };
 
 UCLASS()
@@ -65,8 +66,7 @@ public:
 	FString FormatCsvRow(const FString& ImageName, const FRotator& Rotator, const FSpinDOE& DotInfo, const FVector& WorldPos)const;
 
 	void CheckVertexPosition();
-	void LogUsedVerticesOnly();
-	void LogAndDrawUsedVertices();
+	void DrawUsedVertices();
 
 	// 결과 저장용
 	TArray<FVector> SpinAxes;
@@ -76,9 +76,10 @@ private:
 	void AlignToSpinAxis();
 	void ScanBonesOnce();
 
+	void LogUsedVerticesOnly();
+
 	TArray<FVector> VertexLocalPos;
 	TArray<FVector> VertexWorldPos;
-
 
 protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere,meta = (AllowPrivateAccess = "true"))
