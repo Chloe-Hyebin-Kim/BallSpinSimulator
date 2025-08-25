@@ -76,33 +76,7 @@ void ASpinSimulatorGameModeBase::BeginPlay()
         UE_LOG(LogTemp, Warning, TEXT("AFrameCapture!"));
     }
 
-
-
-    TArray<FString> FileLines;
-
-    // 파일 경로 지정
-    FString FilePath = FPaths::ProjectSavedDir() + TEXT("/SpinDataCSV/range_for_synthetic_data.csv");
-    if (FFileHelper::LoadFileToStringArray(FileLines, *FilePath))
-    {
-        for (int32 i = 1; i < FileLines.Num(); ++i) // 0번째 줄은 헤더
-        {
-            TArray<FString> Columns;
-            FileLines[i].ParseIntoArray(Columns, TEXT(","), true);
-
-            FString rpm = Columns[0];
-            float f32InputRPM = FCString::Atof(*Columns[0]);
-
-            FVector SpinAxisAsVec = FVector::UpVector;
-            SpinAxisAsVec.X = FCString::Atof(*Columns[1]);
-            SpinAxisAsVec.Y = FCString::Atof(*Columns[2]);
-            SpinAxisAsVec.Z = FCString::Atof(*Columns[3]);
-
-            SpinController->m_arrRPM.Push(f32InputRPM);
-            SpinController->m_arrSpinAxis.Push(SpinAxisAsVec);
-
-            UE_LOG(LogTemp, Log, TEXT("RPM:%s , SpinAxis:%f,%f,%f"), *rpm, SpinAxisAsVec.X, SpinAxisAsVec.Y, SpinAxisAsVec.Z);
-        }
-    }
+    SpinController->ReadRangeforSyntheticData();
 
     UStaticMeshComponent* MeshComp = BallActor->FindComponentByClass<UStaticMeshComponent>();
     if (!MeshComp)
@@ -137,20 +111,4 @@ void ASpinSimulatorGameModeBase::BeginPlay()
     const FVector AbsWorldScale = MeshComp->GetComponentTransform().GetScale3D().GetAbs();
     const FVector ScaledLocalOBB = LocalSize * AbsWorldScale; // 로컬 축 기준의 크기(회전 무시)
     UE_LOG(LogTemp, Log, TEXT("[MeshSize][Local*Scale]   Size = (X=%.3f, Y=%.3f, Z=%.3f) cm (rotation ignored)"), ScaledLocalOBB.X, ScaledLocalOBB.Y, ScaledLocalOBB.Z);
-
-
-    //APostProcessVolume* PPVolume = GetWorld()->SpawnActor<APostProcessVolume>(APostProcessVolume::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator);
-    //if (PPVolume)
-    //{
-    //    PPVolume->bUnbound = true; // 월드 전역에 적용됨
-
-    //    // 자동 노출 제거
-    //    PPVolume->Settings.bOverride_AutoExposureMethod = true;
-    //    PPVolume->Settings.AutoExposureMethod = EAutoExposureMethod::AEM_Manual;
-
-    //    PPVolume->Settings.bOverride_AutoExposureBias = true;
-    //    PPVolume->Settings.AutoExposureBias = 1.5f; // 1.0~2.0 사이에서 적절히 조정
-
-    //    UE_LOG(LogTemp, Log, TEXT("Global PostProcessVolume created with Manual Exposure."));
-    //}
 }

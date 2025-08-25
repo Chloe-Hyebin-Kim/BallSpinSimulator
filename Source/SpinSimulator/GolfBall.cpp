@@ -151,62 +151,64 @@ FString AGolfBall::FormatCsvRow(const FString& ImageName, const FRotator& Rotato
 
 void AGolfBall::CheckVertexPosition()
 {
-	//if (GolfBallMesh && GolfBallMesh->GetStaticMesh())
-	//{
-	//	FStaticMeshRenderData* RenderData = GolfBallMesh->GetStaticMesh()->GetRenderData();
-	//	if (RenderData && RenderData->LODResources.Num() > 0)
-	//	{
-	//		//GolfBallMesh (StaticMesh)의 로컬 좌표로부터 폴리곤(Vertex) 좌표 얻기
-	//		const FStaticMeshLODResources& smLODResource = RenderData->LODResources[0]; // LOD 0 사용
-	//		const FPositionVertexBuffer& vertexBuffer = smLODResource.VertexBuffers.PositionVertexBuffer;
+	/**
+	 if (GolfBallMesh && GolfBallMesh->GetStaticMesh())
+	{
+		FStaticMeshRenderData* RenderData = GolfBallMesh->GetStaticMesh()->GetRenderData();
+		if (RenderData && RenderData->LODResources.Num() > 0)
+		{
+			//GolfBallMesh (StaticMesh)의 로컬 좌표로부터 폴리곤(Vertex) 좌표 얻기
+			const FStaticMeshLODResources& smLODResource = RenderData->LODResources[0]; // LOD 0 사용
+			const FPositionVertexBuffer& vertexBuffer = smLODResource.VertexBuffers.PositionVertexBuffer;
 
-	//		for (uint32 i = 0; i < vertexBuffer.GetNumVertices(); ++i)//전체 정점 수만큼 순회
-	//		{
-	//			FVector vertexLocalPosition = vertexBuffer.VertexPosition(i); //i번째 로컬 좌표 (오직 위치x,y,z 좌표만 있음)
-	//			FVector vertexWorldosition = GolfBallMesh->GetComponentTransform().TransformPosition(vertexLocalPosition);//로컬 좌표를 월드 좌표로 변환
-	//			UE_LOG(LogTemp, Log, TEXT("Vertex [%d] LocalPos = %s, WorldPos[%d] = %s"), i, *vertexLocalPosition.ToString(), *vertexWorldosition.ToString());
-	//		}
+			for (uint32 i = 0; i < vertexBuffer.GetNumVertices(); ++i)//전체 정점 수만큼 순회
+			{
+				FVector vertexLocalPosition = vertexBuffer.VertexPosition(i); //i번째 로컬 좌표 (오직 위치x,y,z 좌표만 있음)
+				FVector vertexWorldosition = GolfBallMesh->GetComponentTransform().TransformPosition(vertexLocalPosition);//로컬 좌표를 월드 좌표로 변환
+				UE_LOG(LogTemp, Log, TEXT("Vertex [%d] LocalPos = %s, WorldPos[%d] = %s"), i, *vertexLocalPosition.ToString(), *vertexWorldosition.ToString());
+			}
 
-	//		//삼각형(Triangle) 인덱스 정보 얻기
-	//		const FRawStaticIndexBuffer& indexBuffer = smLODResource.IndexBuffer;//삼각형 구성을 위한 인덱스 배열
+			//삼각형(Triangle) 인덱스 정보 얻기
+			const FRawStaticIndexBuffer& indexBuffer = smLODResource.IndexBuffer;//삼각형 구성을 위한 인덱스 배열
 
-	//		for (auto j = 0; j < indexBuffer.GetNumIndices(); j += 3)
-	//		{
-	//			uint32 index0 = indexBuffer.GetIndex(j);
-	//			uint32 index1 = indexBuffer.GetIndex(j + 1);
-	//			uint32 index2 = indexBuffer.GetIndex(j + 2);
+			for (auto j = 0; j < indexBuffer.GetNumIndices(); j += 3)
+			{
+				uint32 index0 = indexBuffer.GetIndex(j);
+				uint32 index1 = indexBuffer.GetIndex(j + 1);
+				uint32 index2 = indexBuffer.GetIndex(j + 2);
 
-	//			if (index0 >= vertexBuffer.GetNumVertices() || index1 >= vertexBuffer.GetNumVertices() || index2 >= vertexBuffer.GetNumVertices())
-	//			{
-	//				UE_LOG(LogTemp, Error, TEXT("Invalid vertex indices at triangle %d"), j / 3);
-	//				continue;
-	//			}
+				if (index0 >= vertexBuffer.GetNumVertices() || index1 >= vertexBuffer.GetNumVertices() || index2 >= vertexBuffer.GetNumVertices())
+				{
+					UE_LOG(LogTemp, Error, TEXT("Invalid vertex indices at triangle %d"), j / 3);
+					continue;
+				}
 
-	//			//로컬 좌표(Local Space)
-	//			FVector v0 = vertexBuffer.VertexPosition(index0);
-	//			FVector v1 = vertexBuffer.VertexPosition(index1);
-	//			FVector v2 = vertexBuffer.VertexPosition(index2);
-	//			
-	//			//로컬 좌표(Local Space)->월드 좌표 변환(World Space)
-	//			FTransform meshTransform = GolfBallMesh->GetComponentTransform();
-	//			FVector w0 = meshTransform.TransformPosition(v0);
-	//			FVector w1 = meshTransform.TransformPosition(v1);
-	//			FVector w2 = meshTransform.TransformPosition(v2);
+				//로컬 좌표(Local Space)
+				FVector v0 = vertexBuffer.VertexPosition(index0);
+				FVector v1 = vertexBuffer.VertexPosition(index1);
+				FVector v2 = vertexBuffer.VertexPosition(index2);
+				
+				//로컬 좌표(Local Space)->월드 좌표 변환(World Space)
+				FTransform meshTransform = GolfBallMesh->GetComponentTransform();
+				FVector w0 = meshTransform.TransformPosition(v0);
+				FVector w1 = meshTransform.TransformPosition(v1);
+				FVector w2 = meshTransform.TransformPosition(v2);
 
-	//			if (!IsValidVector(w0) || !IsValidVector(w1) || !IsValidVector(w2))
-	//			{
-	//				UE_LOG(LogTemp, Error, TEXT("Invalid WorldPos Triangle[%d] (NaN or Inf)"), j / 3);
-	//				continue;
-	//			}
-	//			
-	//			UE_LOG(LogTemp, Log, TEXT("Triangle[%d] LocalPos v0: %s ,WorldPos w0: %s"), j / 3, *v0.ToString(), *w0.ToString());
-	//			UE_LOG(LogTemp, Log, TEXT("Triangle[%d] LocalPos v1: %s ,WorldPos w0: %s"), j / 3, *v1.ToString(), *w1.ToString());
-	//			UE_LOG(LogTemp, Log, TEXT("Triangle[%d] LocalPos v2: %s ,WorldPos w0: %s"), j / 3, *v2.ToString(), *w2.ToString());
-	//		}
-	//	}
-	//}
+				if (!IsValidVector(w0) || !IsValidVector(w1) || !IsValidVector(w2))
+				{
+					UE_LOG(LogTemp, Error, TEXT("Invalid WorldPos Triangle[%d] (NaN or Inf)"), j / 3);
+					continue;
+				}
+				
+				UE_LOG(LogTemp, Log, TEXT("Triangle[%d] LocalPos v0: %s ,WorldPos w0: %s"), j / 3, *v0.ToString(), *w0.ToString());
+				UE_LOG(LogTemp, Log, TEXT("Triangle[%d] LocalPos v1: %s ,WorldPos w0: %s"), j / 3, *v1.ToString(), *w1.ToString());
+				UE_LOG(LogTemp, Log, TEXT("Triangle[%d] LocalPos v2: %s ,WorldPos w0: %s"), j / 3, *v2.ToString(), *w2.ToString());
+			}
+		}
+	}
+	 **/
 
-
+	UE_LOG(LogTemp, Log, TEXT("CheckVertexPosition."));
 
 	if (GolfBallMesh && GolfBallMesh->GetStaticMesh())
 		if (!GolfBallMesh || !GolfBallMesh->GetStaticMesh())
@@ -245,7 +247,6 @@ void AGolfBall::CheckVertexPosition()
 	}
 
 	const FTransform MeshTransform = GolfBallMesh->GetComponentTransform();
-
 	for (int32 i = 0; i < UsedVertexIndices.Num(); ++i)
 	{
 		int32 Index = UsedVertexIndices.Array()[i];
@@ -269,28 +270,17 @@ void AGolfBall::CheckVertexPosition()
 			tmpDot.LocalPos = LocalPos;
 			tmpDot.WorldPos = WorldPos;
 			Dots.Add(tmpDot);
+
+			
 		}
 
 	}
-
-	/*
-	const FTransform MeshTransform = GolfBallMesh->GetComponentTransform();
-	for (int32 Index : UsedVertexIndices)
-	{
-		FVector LocalPos = PosBuffer.VertexPosition(Index);
-		FVector WorldPos = MeshTransform.TransformPosition(LocalPos);
-
-		UE_LOG(LogTemp, Log, TEXT("[Vertex %d] Local: %s, World: %s"), Index, *LocalPos.ToString(), *WorldPos.ToString());
-	}*/
 }
 
-
-void AGolfBall::LogUsedVerticesOnly()
+void AGolfBall::WriteStringArray(const TArray<FString>& strArray)
 {
 
 }
-
-
 
 void AGolfBall::DrawUsedVertices()
 {
@@ -309,6 +299,40 @@ void AGolfBall::DrawUsedVertices()
 		DrawDebugSphere(World, WorldPos, 0.01f, 32, FColor::Red, false, 10.0f, 0);
 		//DrawDebugPoint(World,WorldPos, 0.4,FColor::Red,false,10.0f,0);
 	}
+}
+
+
+
+void AGolfBall::LoadVertexInfoFile(const FString& fileFullPath)
+{
+	TArray<FString> fileLines;
+
+	// 파일 경로 지정
+	if (FFileHelper::LoadFileToStringArray(fileLines, *fileFullPath))
+	{
+		for (int32 i = 1; i < fileLines.Num(); ++i) // 0번째 줄은 헤더
+		{
+
+			//const FString header = TEXT("CircleId,LocalPosX,LocalPosY,LocalPosZ,WorldPosX,WorldPosY,WorldPosZ");
+			TArray<FString> Columns;
+			fileLines[i].ParseIntoArray(Columns, TEXT(","), true);
+
+			FSpinDOE tmpDot = FSpinDOE();
+			tmpDot.CircleId=FName(*Columns[0]);
+			tmpDot.LocalPos.X = FCString::Atof(*Columns[1]);
+			tmpDot.LocalPos.Y = FCString::Atof(*Columns[2]);
+			tmpDot.LocalPos.Z = FCString::Atof(*Columns[3]);
+			tmpDot.WorldPos.X = FCString::Atof(*Columns[4]);
+			tmpDot.WorldPos.Y = FCString::Atof(*Columns[5]);
+			tmpDot.WorldPos.Z = FCString::Atof(*Columns[6]);
+
+			Dots.Add(tmpDot);
+
+			UE_LOG(LogTemp, Log, TEXT("[Draw Vertex %d] Local: %s, World: %s"), i, *tmpDot.LocalPos.ToString(), *tmpDot.WorldPos.ToString());
+		}
+	}
+
+
 }
 
 

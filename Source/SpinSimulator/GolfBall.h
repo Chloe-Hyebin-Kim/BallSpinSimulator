@@ -61,12 +61,15 @@ public:
 	float GetDegreesPerFrame() { return m_DegreesPerFrame; }
 	float GetDegreesPerSecond() { return m_DegreesPerSecond; }
 	float GetInputRPM() { return m_InputRPM; }
+	const TArray<FSpinDOE>& GetArrayDots() { return Dots; }
 
 	// 회전(rx,ry,rz, 도 단위) 적용 후, 각 점의 "월드 좌표"를 계산해서 CSV 한 줄로 포맷팅
 	FString FormatCsvRow(const FString& ImageName, const FRotator& Rotator, const FSpinDOE& DotInfo, const FVector& WorldPos)const;
 
 	void CheckVertexPosition();
 	void DrawUsedVertices();
+	void LoadVertexInfoFile(const FString& fileFullPath);
+	void AddVertexInfo(FSpinDOE newDot)  { Dots.Add(newDot); }
 
 	// 결과 저장용
 	TArray<FVector> SpinAxes;
@@ -75,8 +78,8 @@ private:
 	void SetVisible(bool isVisible);
 	void AlignToSpinAxis();
 	void ScanBonesOnce();
+	void WriteStringArray(const TArray<FString>& strArray);
 
-	void LogUsedVerticesOnly();
 
 	TArray<FVector> VertexLocalPos;
 	TArray<FVector> VertexWorldPos;

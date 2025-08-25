@@ -8,6 +8,8 @@
 #include "TopCameraActor.h"
 #include "FrameCapture.h"
 
+#include <iostream>
+#include <fstream>
 
 
 ASpinController::ASpinController()
@@ -15,7 +17,7 @@ ASpinController::ASpinController()
     PrimaryActorTick.bCanEverTick = false;
    // AutoPossessPlayer = EAutoReceiveInput::Player0; // 키 입력 수신
 
-
+    bReadRangeforSyntheticData = false;
 }
 
 void ASpinController::BeginPlay()
@@ -37,9 +39,8 @@ void ASpinController::BeginPlay()
         }
     }
 
-     UE_LOG(LogTemp, Log, TEXT("CheckVertexPosition."));
-     ControlledBallActor->CheckVertexPosition();
-    
+
+
     ////카메라 탐색 후 뷰 설정
     // ATopCameraActor* TopCam =  Cast<ATopCameraActor>(UGameplayStatics::GetActorOfClass(GetWorld(), ATopCameraActor::StaticClass()));
     // if (TopCam)
@@ -48,7 +49,22 @@ void ASpinController::BeginPlay()
     // }
 
     /* 콘솔 명령 등록 */ 
+    RegisterCMD();
     
+    /* 메쉬 스캔 */
+    ScanBallMeshVertexData();
+
+}
+
+void ASpinController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    UnregisterCMD();
+
+    Super::EndPlay(EndPlayReason);
+}
+
+void ASpinController::RegisterCMD() 
+{
     // 공 회전 on/off
     IConsoleManager::Get().RegisterConsoleCommand(
         TEXT("SwitchSpin"),
@@ -124,7 +140,7 @@ void ASpinController::BeginPlay()
     UE_LOG(LogTemp, Log, TEXT("RegisterConsoleCommand.  >>>CheckVertexPosition"));
 }
 
-void ASpinController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void ASpinController::UnregisterCMD()
 {
 	IConsoleManager::Get().UnregisterConsoleObject(TEXT("UnregisterConsoleCommand SwitchSpin"));
 	IConsoleManager::Get().UnregisterConsoleObject(TEXT("UnregisterConsoleCommand SetAxis"));
@@ -135,8 +151,131 @@ void ASpinController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	IConsoleManager::Get().UnregisterConsoleObject(TEXT("UnregisterConsoleCommand CaptureCombinations"));
 	IConsoleManager::Get().UnregisterConsoleObject(TEXT("UnregisterConsoleCommand CaptureCSV"));
 	IConsoleManager::Get().UnregisterConsoleObject(TEXT("UnregisterConsoleCommand CheckVertexPosition"));
+}
 
-    Super::EndPlay(EndPlayReason);
+void ASpinController::ScanBallMeshVertexData()
+{
+    UE_LOG(LogTemp, Log, TEXT("Scan Ball Mesh Vertex Data"));
+
+    FString filePath = FPaths::ProjectSavedDir() + TEXT("/SpinDataCSV/VertexInfo.csv");
+    if (FPlatformFileManager::Get().GetPlatformFile().FileExists(*filePath))
+    {
+        UE_LOG(LogTemp, Log, TEXT("VertexInfo.csv already exists."));
+
+        TArray<FString> fileLines;
+
+        // 파일 경로 지정
+        if (FFileHelper::LoadFileToStringArray(fileLines, *filePath))
+        {
+            for (int32 i = 1; i < fileLines.Num(); ++i) // 0번째 줄은 헤더
+            {
+
+                //const FString header = TEXT("CircleId,LocalPosX,LocalPosY,LocalPosZ,WorldPosX,WorldPosY,WorldPosZ");
+                TArray<FString> Columns;
+                fileLines[i].ParseIntoArray(Columns, TEXT(","), true);
+
+                FSpinDOE tmpDot = FSpinDOE();
+                tmpDot.CircleId = FName(*Columns[0]);
+                tmpDot.LocalPos.X = FCString::Atof(*Columns[1]);
+                tmpDot.LocalPos.Y = FCString::Atof(*Columns[2]);
+                tmpDot.LocalPos.Z = FCString::Atof(*Columns[3]);
+                tmpDot.WorldPos.X = FCString::Atof(*Columns[4]);
+                tmpDot.WorldPos.Y = FCString::Atof(*Columns[5]);
+                tmpDot.WorldPos.Z = FCString::Atof(*Columns[6]);
+
+                ControlledBallActor->AddVertexInfo(tmpDot);
+
+                UE_LOG(LogTemp, Log, TEXT("[Draw Vertex %d] Local: %s, World: %s"), i, *tmpDot.LocalPos.ToString(), *tmpDot.WorldPos.ToString());
+            }
+        }
+
+    }
+    else
+    {
+        UE_LOG(LogTemp, Log, TEXT("need to create /SpinDataCSV/VertexInfo.csv."));
+
+
+        ControlledBallActor->CheckVertexPosition();
+
+        TArray<FSpinDOE> dots = ControlledBallActor->GetArrayDots();
+        FString CSVContent;
+        const FString header = TEXT("CircleId,LocalPosX,LocalPosY,LocalPosZ,WorldPosX,WorldPosY,WorldPosZ"); // 헤더 1회 기록
+        //FFileHelper::SaveStringToFile(header + LINE_TERMINATOR, *filePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), FILEWRITE_Append);
+        CSVContent += header + LINE_TERMINATOR;
+
+
+        //TArray<TArray<FString>> fileLines;//    TArray<FString> columns 을 가지고 있음
+        for (int32 i = 0; i < dots.Num(); ++i)
+        {
+            FSpinDOE tmpDot = dots[i];
+
+            //TArray<FString> Columns;
+            //Columns.Add(tmpDot.CircleId.ToString());//Columns.Add(FString::Printf(TEXT("%s"), tmpDot.CircleId));
+            //Columns.Add(FString::Printf(TEXT("%f"), tmpDot.LocalPos.X));
+            //Columns.Add(FString::Printf(TEXT("%f"), tmpDot.LocalPos.Y));
+            //Columns.Add(FString::Printf(TEXT("%f"), tmpDot.LocalPos.Z));
+            //Columns.Add(FString::Printf(TEXT("%f"), tmpDot.WorldPos.X));
+            //Columns.Add(FString::Printf(TEXT("%f"), tmpDot.WorldPos.Y));
+            //Columns.Add(FString::Printf(TEXT("%f"), tmpDot.WorldPos.Z));
+            //fileLines.Add(Columns);
+
+            FString line = "";
+            line = FString::Printf(TEXT("%s,%f,%f,%f,%f,%f,%f"), *tmpDot.CircleId.ToString(), tmpDot.LocalPos.X, tmpDot.LocalPos.Y, tmpDot.LocalPos.Z, tmpDot.WorldPos.X, tmpDot.WorldPos.Y, tmpDot.WorldPos.Z);
+            //FFileHelper::SaveStringToFile(line + LINE_TERMINATOR, *filePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), FILEWRITE_Append);
+            CSVContent += line + LINE_TERMINATOR;
+            UE_LOG(LogTemp, Log, TEXT("%s"), *line);
+        }
+
+
+        if (FFileHelper::SaveStringToFile(CSVContent, *filePath))
+        {
+            UE_LOG(LogTemp, Log, TEXT("Save Success: %s"), *filePath);
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("Save Fail: %s"), *filePath);
+        }
+
+    }
+}
+
+void ASpinController::ReadRangeforSyntheticData()
+{
+    if (bReadRangeforSyntheticData)
+    {
+        UE_LOG(LogTemp, Log, TEXT("ReadRangeforSyntheticData."));
+
+        TArray<FString> FileLines;
+
+        // 파일 경로 지정
+        FString FilePath = FPaths::ProjectSavedDir() + TEXT("/SpinDataCSV/range_for_synthetic_data.csv");
+        if (FFileHelper::LoadFileToStringArray(FileLines, *FilePath))
+        {
+            for (int32 i = 1; i < FileLines.Num(); ++i) // 0번째 줄은 헤더
+            {
+                TArray<FString> Columns;
+                FileLines[i].ParseIntoArray(Columns, TEXT(","), true);
+
+                FString rpm = Columns[0];
+                float f32InputRPM = FCString::Atof(*Columns[0]);
+
+                FVector SpinAxisAsVec = FVector::UpVector;
+                SpinAxisAsVec.X = FCString::Atof(*Columns[1]);
+                SpinAxisAsVec.Y = FCString::Atof(*Columns[2]);
+                SpinAxisAsVec.Z = FCString::Atof(*Columns[3]);
+
+                m_arrRPM.Add(f32InputRPM);
+                m_arrSpinAxis.Add(SpinAxisAsVec);
+
+                UE_LOG(LogTemp, Log, TEXT("RPM:%s , SpinAxis:%f,%f,%f"), *rpm, SpinAxisAsVec.X, SpinAxisAsVec.Y, SpinAxisAsVec.Z);
+            }
+        }
+
+    }
+    else
+	{
+		UE_LOG(LogTemp, Log, TEXT("Do not ReadRangeforSyntheticData."));
+	}
 }
 
 
@@ -340,6 +479,13 @@ void ASpinController::OnCaptureCSV(const TArray<FString>& Args)
 {
     UE_LOG(LogTemp, Log, TEXT("OnCaptureCSV."));
 
+    if(bReadRangeforSyntheticData==false)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Please set bReadRangeforSyntheticData=true in SpinController.cpp and re-run."));
+		return;
+	}
+
+	// AFrameCapture 자동 검색
     AFrameCapture* CaptureActor = Cast<AFrameCapture>(UGameplayStatics::GetActorOfClass(GetWorld(), AFrameCapture::StaticClass()));
     if (!CaptureActor)
     {
@@ -406,6 +552,17 @@ void ASpinController::OnCaptureCSV(const TArray<FString>& Args)
 }
 
 
+void ASpinController::OnCheckVertexPosition(const TArray<FString>& Args)
+{
+    ControlledBallActor->SetIsSpin(false,true);//무조건 스핀 끄기
+    //ControlledBallActor->CheckVertexPosition();
+
+    
+
+    UE_LOG(LogTemp, Log, TEXT("DrawUsedVertices."));
+    ControlledBallActor->DrawUsedVertices();
+}
+
 void ASpinController::VirtualSpinCapture()
 {
     UE_LOG(LogTemp, Log, TEXT("VirtualSpinCapture."));
@@ -447,15 +604,43 @@ void ASpinController::VirtualSpinCapture()
    
 }
 
-void ASpinController::OnCheckVertexPosition(const TArray<FString>& Args)
+bool ASpinController::LoadCSV(const TCHAR* FilePathName, TArray<FString>& OutPutStrings)
 {
-    ControlledBallActor->SetIsSpin(false,true);//무조건 스핀 끄기
-    //ControlledBallActor->CheckVertexPosition();
+    bool bSuccess = FFileHelper::LoadANSITextFileToStrings(*(FPaths::ProjectDir() + "/Content/" + FilePathName + ".csv"), NULL, OutPutStrings);
 
-    
+    return bSuccess;
+}
 
-    UE_LOG(LogTemp, Log, TEXT("DrawUsedVertices."));
-    ControlledBallActor->DrawUsedVertices();
+
+bool ASpinController::StartLogFile(const FString& Prefix)
+{
+    FDateTime CurrentDateTime = FDateTime::Now();
+
+    int32 Year, Month, Day;
+    CurrentDateTime.GetDate(Year, Month, Day);
+    int32 Hour = CurrentDateTime.GetHour();
+    int32 Minute = CurrentDateTime.GetMinute();
+
+    FString GameSavedPath = FPaths::ProjectSavedDir();
+    FString FileName = FString::Printf(TEXT("%s/Logs/%s_%02d-%02d-%02d_%02d-%02d.log"), *GameSavedPath, *Prefix, Year % 100, Month, Day, Hour, Minute);
+    ArchiveFile = TUniquePtr<FArchive>(IFileManager::Get().CreateFileWriter(*FileName, FILEWRITE_EvenIfReadOnly | FILEWRITE_AllowRead));
+    if (ArchiveFile)
+    {
+        ArchiveFile->SetIsTextFormat(true);
+        UTF8CHAR UTF8BOM[] = { 0xEF, 0xBB, 0xBF };
+        ArchiveFile->Serialize(&UTF8BOM, UE_ARRAY_COUNT(UTF8BOM) * sizeof(UTF8CHAR));
+    }
+
+    return ArchiveFile != nullptr;
+}
+
+void ASpinController::CloseLogFile()
+{
+    if (ArchiveFile)
+    {
+        ArchiveFile->Close();
+    }
+    ArchiveFile = nullptr;
 }
 
 void ASpinController::PrepareCSV()
@@ -476,6 +661,24 @@ void ASpinController::PrepareCSV()
 void ASpinController::CSVAppendLine(const FString& Line, const FString& csvAbsPath)
 {
     FFileHelper::SaveStringToFile(Line + LINE_TERMINATOR, *csvAbsPath,FFileHelper::EEncodingOptions::AutoDetect,&IFileManager::Get(), FILEWRITE_Append);
+
+    /*       std::string fileNameStd(TCHAR_TO_UTF8(*filePath));
+        std::ofstream csvFile(fileNameStd.c_str(), std::ios_base::app);
+        if (csvFile.is_open())
+        {
+            for (int32 i = 0; i < ArraySize; ++i)
+            {
+                std::string data(TCHAR_TO_UTF8(*DataArray[i]));
+                csvFile << data;
+                if (i < ArraySize - 1) 
+                {
+                    csvFile << ",";
+                }
+            }
+            csvFile << "\n";
+            csvFile.close();
+
+        }*/
 }
 
 
