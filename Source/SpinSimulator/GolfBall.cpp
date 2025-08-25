@@ -225,15 +225,14 @@ void AGolfBall::LogUsedVerticesOnly()
 		return;
 	}
 
-	const int32 LODIndex = 0;
+	int32 LODIndex = 0;
 	const FStaticMeshLODResources& LODResource = RenderData->LODResources[LODIndex];
 	const FPositionVertexBuffer& PosBuffer = LODResource.VertexBuffers.PositionVertexBuffer;
 	const FRawStaticIndexBuffer& IndexBuffer = LODResource.IndexBuffer;
-
-	const int32 VertexCount = PosBuffer.GetNumVertices();
-	const int32 IndexCount = IndexBuffer.GetNumIndices();
-
 	TSet<int32> UsedVertexIndices;
+
+	int32 VertexCount = PosBuffer.GetNumVertices();
+	int32 IndexCount = IndexBuffer.GetNumIndices();
 
 	for (int32 i = 0; i < IndexCount; ++i)
 	{
@@ -250,14 +249,57 @@ void AGolfBall::LogUsedVerticesOnly()
 
 	const FTransform MeshTransform = GolfBallMesh->GetComponentTransform();
 
+	for (int32 i = 0; i < UsedVertexIndices.Num(); ++i)
+	{
+		int32 Index = UsedVertexIndices.Array()[i];
+		FVector LocalPos = PosBuffer.VertexPosition(Index);
+		FVector WorldPos = MeshTransform.TransformPosition(LocalPos);
+
+		UE_LOG(LogTemp, Log, TEXT("[Vertex %d] Local: %s, World: %s"), Index, *LocalPos.ToString(), *WorldPos.ToString());
+		
+		if (i % 1800 == 0)
+		{
+			VertexLocalPos.Add(LocalPos);
+			VertexWorldPos.Add(WorldPos);
+		}
+
+	}
+
+	/*
+	const FTransform MeshTransform = GolfBallMesh->GetComponentTransform();
 	for (int32 Index : UsedVertexIndices)
 	{
 		FVector LocalPos = PosBuffer.VertexPosition(Index);
 		FVector WorldPos = MeshTransform.TransformPosition(LocalPos);
 
 		UE_LOG(LogTemp, Log, TEXT("[Vertex %d] Local: %s, World: %s"), Index, *LocalPos.ToString(), *WorldPos.ToString());
+	}*/
+}
+
+
+
+void AGolfBall::LogAndDrawUsedVertices()
+{
+	UE_LOG(LogTemp, Log, TEXT("DrawUsedVertices."));
+
+	const UWorld* World = GolfBallMesh->GetWorld();
+	for (int32 i = 0; i < VertexWorldPos.Num(); ++i)
+	{
+		FVector LocalPos = VertexLocalPos[i];
+		FVector WorldPos = VertexWorldPos[i];
+
+		UE_LOG(LogTemp, Log, TEXT("[Draw Vertex %d] Local: %s, World: %s"), i, *LocalPos.ToString(), *WorldPos.ToString());
+
+		// 2mm 빨간색 구 그리기
+		//DrawDebugCircle(World,WorldPos,0.1f,32,FColor::Red,false, 2.0f,0 );
+		DrawDebugSphere(World, WorldPos, 0.01f, 32, FColor::Red, false, 10.0f, 0);
+		//DrawDebugPoint(World,WorldPos, 0.4,FColor::Red,false,10.0f,0);
 	}
 }
+
+
+
+
 
 void AGolfBall::Tick(float DeltaTime)
 {

@@ -66,6 +66,7 @@ public:
 
 	void CheckVertexPosition();
 	void LogUsedVerticesOnly();
+	void LogAndDrawUsedVertices();
 
 	// 결과 저장용
 	TArray<FVector> SpinAxes;
@@ -74,6 +75,9 @@ private:
 	void SetVisible(bool isVisible);
 	void AlignToSpinAxis();
 	void ScanBonesOnce();
+
+	TArray<FVector> VertexLocalPos;
+	TArray<FVector> VertexWorldPos;
 
 
 protected:

@@ -36,6 +36,9 @@ void ASpinController::BeginPlay()
             return;
         }
     }
+
+     UE_LOG(LogTemp, Log, TEXT("CheckVertexPosition."));
+     ControlledBallActor->LogUsedVerticesOnly();
     
     ////Ä«¸Þ¶ó Å½»ö ÈÄ ºä ¼³Á¤
     // ATopCameraActor* TopCam =  Cast<ATopCameraActor>(UGameplayStatics::GetActorOfClass(GetWorld(), ATopCameraActor::StaticClass()));
@@ -346,7 +349,7 @@ void ASpinController::OnCaptureCSV(const TArray<FString>& Args)
      ControlledBallActor->SetIsSpin(false,true);//¹«Á¶°Ç ½ºÇÉ ²ô±â
 
     int t = 1;
-    for (int i = 0; i < m_arrRPM.Num(); ++i)
+	for (int i = 0; i < m_arrRPM.Num(); ++i)
     {
         for (int j = 1; j <= 1000; ++j)
         {
@@ -355,15 +358,15 @@ void ASpinController::OnCaptureCSV(const TArray<FString>& Args)
                 {
                     FVector SpinAxis = m_arrSpinAxis[i].GetSafeNormal();
                     ControlledBallActor->SetSpinAxis(SpinAxis);
-
-                    float AngleDeg = m_arrRPM[i] * RPM2DPS * DPS2FPS * j; //RPM -> DegreesPerSecond -> Degrees Per Frame
+                    float rpm = m_arrRPM[i];
+                    float AngleDeg = rpm * RPM2DPS * DPS2FPS * j; //RPM -> DegreesPerSecond -> Degrees Per Frame
                     float AngleRad = FMath::DegreesToRadians(AngleDeg);
                     FQuat rotationQuat = FQuat(SpinAxis, AngleRad);
                     ControlledBallActor->AddActorWorldRotation(rotationQuat, false, nullptr, ETeleportType::None);
 
-                    CaptureActor->CaptureAndSave_CSV(j, SpinAxis, m_arrRPM[i]);
+                    CaptureActor->CaptureAndSave_CSV(j, SpinAxis, rpm);
                 });
-            GetWorld()->GetTimerManager().SetTimer(timerHandle, delayCommandDelegate, 0.1f * t, false);
+            GetWorld()->GetTimerManager().SetTimer(timerHandle, delayCommandDelegate, 0.2f * t, false);
 
             ++t;
         }
@@ -446,11 +449,13 @@ void ASpinController::VirtualSpinCapture()
 
 void ASpinController::OnCheckVertexPosition(const TArray<FString>& Args)
 {
-    UE_LOG(LogTemp, Log, TEXT("CheckVertexPosition."));
-
     ControlledBallActor->SetIsSpin(false,true);//¹«Á¶°Ç ½ºÇÉ ²ô±â
     //ControlledBallActor->CheckVertexPosition();
-    ControlledBallActor->LogUsedVerticesOnly();
+    //ControlledBallActor->LogUsedVerticesOnly();
+    
+
+    UE_LOG(LogTemp, Log, TEXT("DrawUsedVertices."));
+    ControlledBallActor->LogAndDrawUsedVertices();
 }
 
 void ASpinController::PrepareCSV()

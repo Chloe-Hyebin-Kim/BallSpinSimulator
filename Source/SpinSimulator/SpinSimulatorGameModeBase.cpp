@@ -90,10 +90,10 @@ void ASpinSimulatorGameModeBase::BeginPlay()
             FileLines[i].ParseIntoArray(Columns, TEXT(","), true);
 
             FString rpm = Columns[0];
-            float f32InputRPM = FCString::Atoi(*Columns[0]);
+            float f32InputRPM = FCString::Atof(*Columns[0]);
 
             FVector SpinAxisAsVec = FVector::UpVector;
-            SpinAxisAsVec.X = FCString::Atoi(*Columns[1]);
+            SpinAxisAsVec.X = FCString::Atof(*Columns[1]);
             SpinAxisAsVec.Y = FCString::Atof(*Columns[2]);
             SpinAxisAsVec.Z = FCString::Atof(*Columns[3]);
 
