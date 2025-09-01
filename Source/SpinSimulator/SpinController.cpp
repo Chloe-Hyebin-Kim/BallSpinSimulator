@@ -53,14 +53,13 @@ void ASpinController::BeginPlay()
     
     /* ¸Þ½¬ ½ºÄµ */
     ScanBallMeshVertexData();
-
 }
 
 void ASpinController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     UnregisterCMD();
 
-    Super::EndPlay(EndPlayReason);
+	Super::EndPlay(EndPlayReason);
 }
 
 void ASpinController::RegisterCMD() 
@@ -497,7 +496,7 @@ void ASpinController::OnCaptureCSV(const TArray<FString>& Args)
     int t = 1;
 	for (int i = 0; i < m_arrRPM.Num(); ++i)
     {
-        for (int j = 1; j <= 1000; ++j)
+        for (int j = 1; j <= 100; ++j)
         {
             FTimerHandle timerHandle;
             FTimerDelegate delayCommandDelegate = FTimerDelegate::CreateLambda([=]()

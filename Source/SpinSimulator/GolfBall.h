@@ -71,18 +71,17 @@ public:
 	void LoadVertexInfoFile(const FString& fileFullPath);
 	void AddVertexInfo(FSpinDOE newDot)  { Dots.Add(newDot); }
 
-	// 결과 저장용
-	TArray<FVector> SpinAxes;
-
 private:
 	void SetVisible(bool isVisible);
 	void AlignToSpinAxis();
 	void ScanBonesOnce();
 	void WriteStringArray(const TArray<FString>& strArray);
 
-
 	TArray<FVector> VertexLocalPos;
 	TArray<FVector> VertexWorldPos;
+
+	// 결과 저장용
+	TArray<FVector> SpinAxes;
 
 protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere,meta = (AllowPrivateAccess = "true"))

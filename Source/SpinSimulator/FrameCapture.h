@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Components/SceneCaptureComponent2D.h"
+//#include "Components/SceneCaptureComponent2D.h"
 
 #include "FrameCapture.generated.h"
 
@@ -23,9 +23,14 @@ public:
     void CaptureAndSave(int idx, FVector spinAxis, float rpm);
     void CaptureAndSave_CSV(int idx, FVector spinAxis, float rpm);
     bool CaptureCombinations(int pitchDeg, int yawDeg/*, FVector spinAxis*/ );
+    bool ProjectWorldToRenderTargetPixel(const FVector& WorldPos, FVector2D& OutPixel /* Ä¸Ã³ ÀÌ¹ÌÁö »óÀÇ (x,y) ÇÈ¼¿ ÁÂÇ¥ */);
 
 private:
     void SaveRenderTargetToPNG(const FString& FileName);
+    FMatrix MakeViewMatrix_FromCapture();
+    bool GetVertexPixelOnCapture(UStaticMeshComponent* MeshComp, int32 VertexIdx, FVector2D& OutPixel);
+    bool ProjectWorldToCapturePixel(const FVector& WorldPos, FVector2D& OutPixel);
+    FMatrix MakeProjectionMatrix_FromCapture(int32 RTWidth, int32 RTHeight, float NearZ = 10.f, float FarZ = 1000000.f);
 
 private:
     UPROPERTY(EditAnywhere)
