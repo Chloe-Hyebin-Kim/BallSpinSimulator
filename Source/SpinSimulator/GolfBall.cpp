@@ -149,7 +149,7 @@ FString AGolfBall::FormatCsvRow(const FString& ImageName, const FRotator& Rotato
 }
 
 
-void AGolfBall::CheckVertexPosition()
+void AGolfBall::CreateBallMeshData_SpinDOE(const FString& fileFullPath)
 {
 	/**
 	 if (GolfBallMesh && GolfBallMesh->GetStaticMesh())
@@ -210,12 +210,17 @@ void AGolfBall::CheckVertexPosition()
 
 	UE_LOG(LogTemp, Log, TEXT("CheckVertexPosition."));
 
-	if (GolfBallMesh && GolfBallMesh->GetStaticMesh())
-		if (!GolfBallMesh || !GolfBallMesh->GetStaticMesh())
-		{
-			UE_LOG(LogTemp, Error, TEXT("Invalid MeshComponent or StaticMesh"));
-			return;
-		}
+	if (!GolfBallMesh)
+	{
+
+		UE_LOG(LogTemp, Error, TEXT("Invalid MeshComponent"));
+		return;
+	}
+	if (!GolfBallMesh->GetStaticMesh())
+	{
+		UE_LOG(LogTemp, Error, TEXT("Invalid StaticMesh"));
+		return;
+	}
 
 	const FStaticMeshRenderData* RenderData = GolfBallMesh->GetStaticMesh()->GetRenderData();
 	if (!RenderData || RenderData->LODResources.Num() == 0)
@@ -246,6 +251,11 @@ void AGolfBall::CheckVertexPosition()
 		}
 	}
 
+	FString CSVContent;
+	const FString header = TEXT("CircleId,LocalPosX,LocalPosY,LocalPosZ,WorldPosX,WorldPosY,WorldPosZ"); // 헤더 1회 기록
+	CSVContent += header + LINE_TERMINATOR;
+	UE_LOG(LogTemp, Log, TEXT("%s"), *header);
+
 	const FTransform MeshTransform = GolfBallMesh->GetComponentTransform();
 	for (int32 i = 0; i < UsedVertexIndices.Num(); ++i)
 	{
@@ -271,9 +281,22 @@ void AGolfBall::CheckVertexPosition()
 			tmpDot.WorldPos = WorldPos;
 			Dots.Add(tmpDot);
 
-			
+			FString line = "";
+			line = FString::Printf(TEXT("%s,%f,%f,%f,%f,%f,%f"), *tmpDot.CircleId.ToString(), tmpDot.LocalPos.X, tmpDot.LocalPos.Y, tmpDot.LocalPos.Z, tmpDot.WorldPos.X, tmpDot.WorldPos.Y, tmpDot.WorldPos.Z);
+			CSVContent += line + LINE_TERMINATOR;
+			UE_LOG(LogTemp, Log, TEXT("%s"), *line);
 		}
 
+	}
+
+	// 파일 저장
+	if (FFileHelper::SaveStringToFile(CSVContent, *fileFullPath))
+	{
+		UE_LOG(LogTemp, Log, TEXT("Save Success: %s"), *fileFullPath);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Save Fail: %s"), *fileFullPath);
 	}
 }
 
@@ -282,7 +305,7 @@ void AGolfBall::WriteStringArray(const TArray<FString>& strArray)
 
 }
 
-void AGolfBall::DrawUsedVertices()
+void AGolfBall::DrawBallMeshData_SpinDOE()
 {
 	UE_LOG(LogTemp, Log, TEXT("DrawUsedVertices."));
 
@@ -291,25 +314,27 @@ void AGolfBall::DrawUsedVertices()
 	{
 		FVector LocalPos = VertexLocalPos[i];
 		FVector WorldPos = VertexWorldPos[i];
-		
+
 		UE_LOG(LogTemp, Log, TEXT("[Draw Vertex %d] Local: %s, World: %s"), i, *LocalPos.ToString(), *WorldPos.ToString());
 		
 		// 2mm 빨간색 구 그리기
 		//DrawDebugCircle(World,WorldPos,0.1f,32,FColor::Red,false, 2.0f,0 );
-		DrawDebugSphere(World, WorldPos, 0.01f, 32, FColor::Red, false, 10.0f, 0);
+		DrawDebugSphere(World, WorldPos, 0.01f, 32, FColor::Red, true,-1.f, 0);
 		//DrawDebugPoint(World,WorldPos, 0.4,FColor::Red,false,10.0f,0);
 	}
 }
 
 
-
-void AGolfBall::LoadVertexInfoFile(const FString& fileFullPath)
+void AGolfBall::LoadBallMeshData_SpinDOE(const FString& fileFullPath)
 {
 	TArray<FString> fileLines;
 
 	// 파일 경로 지정
 	if (FFileHelper::LoadFileToStringArray(fileLines, *fileFullPath))
 	{
+		FString line = TEXT("CircleId,LocalPosX,LocalPosY,LocalPosZ,WorldPosX,WorldPosY,WorldPosZ");
+		UE_LOG(LogTemp, Log, TEXT("%s"), *line);
+
 		for (int32 i = 1; i < fileLines.Num(); ++i) // 0번째 줄은 헤더
 		{
 
@@ -327,12 +352,13 @@ void AGolfBall::LoadVertexInfoFile(const FString& fileFullPath)
 			tmpDot.WorldPos.Z = FCString::Atof(*Columns[6]);
 
 			Dots.Add(tmpDot);
+			VertexLocalPos.Add(tmpDot.LocalPos);
+			VertexWorldPos.Add(tmpDot.WorldPos);
 
-			UE_LOG(LogTemp, Log, TEXT("[Draw Vertex %d] Local: %s, World: %s"), i, *tmpDot.LocalPos.ToString(), *tmpDot.WorldPos.ToString());
+			line = FString::Printf(TEXT("%s,%f,%f,%f,%f,%f,%f"), *tmpDot.CircleId.ToString(), tmpDot.LocalPos.X, tmpDot.LocalPos.Y, tmpDot.LocalPos.Z, tmpDot.WorldPos.X, tmpDot.WorldPos.Y, tmpDot.WorldPos.Z);
+			UE_LOG(LogTemp, Log, TEXT("%s"), *line);
 		}
 	}
-
-
 }
 
 
@@ -814,3 +840,6 @@ void AGolfBall::DrawWorldGizmoAxis()
 	UE_LOG(LogTemp, Log, TEXT("[World Gizmo] Right Vector (Y): (%f, %f, %f)"), vecAxisY.X, vecAxisY.Y, vecAxisY.Z);
 	UE_LOG(LogTemp, Log, TEXT("[World Gizmo] Up Vector (Z):      (%f, %f, %f)"), vecAxisZ.X, vecAxisZ.Y, vecAxisZ.Z);
 }
+
+
+

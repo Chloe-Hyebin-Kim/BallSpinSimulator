@@ -50,9 +50,10 @@ void ASpinController::BeginPlay()
 
     /* 콘솔 명령 등록 */ 
     RegisterCMD();
-    
+
+
     /* 메쉬 스캔 */
-    ScanBallMeshVertexData();
+    CheckVertexData_SpinDOE();
 }
 
 void ASpinController::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -137,24 +138,33 @@ void ASpinController::RegisterCMD()
         FConsoleCommandWithArgsDelegate::CreateUObject(this, &ASpinController::OnCheckVertexPosition)
     );
     UE_LOG(LogTemp, Log, TEXT("RegisterConsoleCommand.  >>>CheckVertexPosition"));
+
+    //ProjectVertices
+    IConsoleManager::Get().RegisterConsoleCommand(
+        TEXT("ProjectVertices"),
+        TEXT("Projection Local Vertices Array to Rener Target Pixels"),
+        FConsoleCommandWithArgsDelegate::CreateUObject(this, &ASpinController::OnProjectVertices)
+    );
+    UE_LOG(LogTemp, Log, TEXT("RegisterConsoleCommand.  >>>ProjectVertices"));
 }
 
 void ASpinController::UnregisterCMD()
 {
-	IConsoleManager::Get().UnregisterConsoleObject(TEXT("UnregisterConsoleCommand SwitchSpin"));
-	IConsoleManager::Get().UnregisterConsoleObject(TEXT("UnregisterConsoleCommand SetAxis"));
-	IConsoleManager::Get().UnregisterConsoleObject(TEXT("UnregisterConsoleCommand SetSpinSpeed"));
-	IConsoleManager::Get().UnregisterConsoleObject(TEXT("UnregisterConsoleCommand ShowOriginAxis"));
-	IConsoleManager::Get().UnregisterConsoleObject(TEXT("UnregisterConsoleCommand ShowBallAxis"));
-	IConsoleManager::Get().UnregisterConsoleObject(TEXT("UnregisterConsoleCommand CaptureView"));
-	IConsoleManager::Get().UnregisterConsoleObject(TEXT("UnregisterConsoleCommand CaptureCombinations"));
-	IConsoleManager::Get().UnregisterConsoleObject(TEXT("UnregisterConsoleCommand CaptureCSV"));
-	IConsoleManager::Get().UnregisterConsoleObject(TEXT("UnregisterConsoleCommand CheckVertexPosition"));
+	IConsoleManager::Get().UnregisterConsoleObject(TEXT("SwitchSpin"));
+	IConsoleManager::Get().UnregisterConsoleObject(TEXT("SetAxis"));
+	IConsoleManager::Get().UnregisterConsoleObject(TEXT("SetSpinSpeed"));
+	IConsoleManager::Get().UnregisterConsoleObject(TEXT("ShowOriginAxis"));
+	IConsoleManager::Get().UnregisterConsoleObject(TEXT("ShowBallAxis"));
+	IConsoleManager::Get().UnregisterConsoleObject(TEXT("CaptureView"));
+	IConsoleManager::Get().UnregisterConsoleObject(TEXT("CaptureCombinations"));
+	IConsoleManager::Get().UnregisterConsoleObject(TEXT("CaptureCSV"));
+	IConsoleManager::Get().UnregisterConsoleObject(TEXT("CheckVertexPosition"));
+	IConsoleManager::Get().UnregisterConsoleObject(TEXT("ProjectVertices"));
 }
 
-void ASpinController::ScanBallMeshVertexData()
+void ASpinController::CheckVertexData_SpinDOE()
 {
-    UE_LOG(LogTemp, Log, TEXT("Scan Ball Mesh Vertex Data"));
+    UE_LOG(LogTemp, Log, TEXT("Check Ball Mesh Vertex Data"));
 
     FString filePath = FPaths::ProjectSavedDir() + TEXT("/SpinDataCSV/VertexInfo.csv");
     if (FPlatformFileManager::Get().GetPlatformFile().FileExists(*filePath))
@@ -162,79 +172,13 @@ void ASpinController::ScanBallMeshVertexData()
         UE_LOG(LogTemp, Log, TEXT("VertexInfo.csv already exists."));
 
         TArray<FString> fileLines;
-
-        // 파일 경로 지정
-        if (FFileHelper::LoadFileToStringArray(fileLines, *filePath))
-        {
-            for (int32 i = 1; i < fileLines.Num(); ++i) // 0번째 줄은 헤더
-            {
-
-                //const FString header = TEXT("CircleId,LocalPosX,LocalPosY,LocalPosZ,WorldPosX,WorldPosY,WorldPosZ");
-                TArray<FString> Columns;
-                fileLines[i].ParseIntoArray(Columns, TEXT(","), true);
-
-                FSpinDOE tmpDot = FSpinDOE();
-                tmpDot.CircleId = FName(*Columns[0]);
-                tmpDot.LocalPos.X = FCString::Atof(*Columns[1]);
-                tmpDot.LocalPos.Y = FCString::Atof(*Columns[2]);
-                tmpDot.LocalPos.Z = FCString::Atof(*Columns[3]);
-                tmpDot.WorldPos.X = FCString::Atof(*Columns[4]);
-                tmpDot.WorldPos.Y = FCString::Atof(*Columns[5]);
-                tmpDot.WorldPos.Z = FCString::Atof(*Columns[6]);
-
-                ControlledBallActor->AddVertexInfo(tmpDot);
-
-                UE_LOG(LogTemp, Log, TEXT("[Draw Vertex %d] Local: %s, World: %s"), i, *tmpDot.LocalPos.ToString(), *tmpDot.WorldPos.ToString());
-            }
-        }
+		ControlledBallActor->LoadBallMeshData_SpinDOE(filePath);
 
     }
     else
     {
         UE_LOG(LogTemp, Log, TEXT("need to create /SpinDataCSV/VertexInfo.csv."));
-
-
-        ControlledBallActor->CheckVertexPosition();
-
-        TArray<FSpinDOE> dots = ControlledBallActor->GetArrayDots();
-        FString CSVContent;
-        const FString header = TEXT("CircleId,LocalPosX,LocalPosY,LocalPosZ,WorldPosX,WorldPosY,WorldPosZ"); // 헤더 1회 기록
-        //FFileHelper::SaveStringToFile(header + LINE_TERMINATOR, *filePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), FILEWRITE_Append);
-        CSVContent += header + LINE_TERMINATOR;
-
-
-        //TArray<TArray<FString>> fileLines;//    TArray<FString> columns 을 가지고 있음
-        for (int32 i = 0; i < dots.Num(); ++i)
-        {
-            FSpinDOE tmpDot = dots[i];
-
-            //TArray<FString> Columns;
-            //Columns.Add(tmpDot.CircleId.ToString());//Columns.Add(FString::Printf(TEXT("%s"), tmpDot.CircleId));
-            //Columns.Add(FString::Printf(TEXT("%f"), tmpDot.LocalPos.X));
-            //Columns.Add(FString::Printf(TEXT("%f"), tmpDot.LocalPos.Y));
-            //Columns.Add(FString::Printf(TEXT("%f"), tmpDot.LocalPos.Z));
-            //Columns.Add(FString::Printf(TEXT("%f"), tmpDot.WorldPos.X));
-            //Columns.Add(FString::Printf(TEXT("%f"), tmpDot.WorldPos.Y));
-            //Columns.Add(FString::Printf(TEXT("%f"), tmpDot.WorldPos.Z));
-            //fileLines.Add(Columns);
-
-            FString line = "";
-            line = FString::Printf(TEXT("%s,%f,%f,%f,%f,%f,%f"), *tmpDot.CircleId.ToString(), tmpDot.LocalPos.X, tmpDot.LocalPos.Y, tmpDot.LocalPos.Z, tmpDot.WorldPos.X, tmpDot.WorldPos.Y, tmpDot.WorldPos.Z);
-            //FFileHelper::SaveStringToFile(line + LINE_TERMINATOR, *filePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), FILEWRITE_Append);
-            CSVContent += line + LINE_TERMINATOR;
-            UE_LOG(LogTemp, Log, TEXT("%s"), *line);
-        }
-
-
-        if (FFileHelper::SaveStringToFile(CSVContent, *filePath))
-        {
-            UE_LOG(LogTemp, Log, TEXT("Save Success: %s"), *filePath);
-        }
-        else
-        {
-            UE_LOG(LogTemp, Error, TEXT("Save Fail: %s"), *filePath);
-        }
-
+        ControlledBallActor->CreateBallMeshData_SpinDOE(filePath);
     }
 }
 
@@ -559,8 +503,32 @@ void ASpinController::OnCheckVertexPosition(const TArray<FString>& Args)
     
 
     UE_LOG(LogTemp, Log, TEXT("DrawUsedVertices."));
-    ControlledBallActor->DrawUsedVertices();
+    ControlledBallActor->DrawBallMeshData_SpinDOE();
 }
+
+void ASpinController::OnProjectVertices(const TArray<FString>& Args)
+{
+    UE_LOG(LogTemp, Log, TEXT("ProjectVertices."));
+
+    AFrameCapture* CaptureActor = Cast<AFrameCapture>(UGameplayStatics::GetActorOfClass(GetWorld(), AFrameCapture::StaticClass()));
+    if (!CaptureActor)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Can not find CaptureActor."));
+    }
+
+    UStaticMeshComponent* MeshComp = ControlledBallActor->FindComponentByClass<UStaticMeshComponent>();
+    if (!MeshComp)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[OnProjectVertices] No UStaticMeshComponent on %s"), *ControlledBallActor->GetName());
+        return;
+    }
+    TArray<FVector> localVerts = ControlledBallActor->GetArrayLocalVertices();
+    CaptureActor->ProjectVertices(MeshComp,localVerts);
+}
+
+
+
+
 
 void ASpinController::VirtualSpinCapture()
 {

@@ -62,14 +62,17 @@ public:
 	float GetDegreesPerSecond() { return m_DegreesPerSecond; }
 	float GetInputRPM() { return m_InputRPM; }
 	const TArray<FSpinDOE>& GetArrayDots() { return Dots; }
+	const TArray<FVector>& GetArrayLocalVertices() { return VertexLocalPos; }
+	const TArray<FVector>& GetArrayWorldVertices() { return VertexWorldPos; }
 
 	// 회전(rx,ry,rz, 도 단위) 적용 후, 각 점의 "월드 좌표"를 계산해서 CSV 한 줄로 포맷팅
 	FString FormatCsvRow(const FString& ImageName, const FRotator& Rotator, const FSpinDOE& DotInfo, const FVector& WorldPos)const;
 
-	void CheckVertexPosition();
-	void DrawUsedVertices();
-	void LoadVertexInfoFile(const FString& fileFullPath);
-	void AddVertexInfo(FSpinDOE newDot)  { Dots.Add(newDot); }
+	void CreateBallMeshData_SpinDOE(const FString& fileFullPath);
+	void LoadBallMeshData_SpinDOE(const FString& fileFullPath);
+	void DrawBallMeshData_SpinDOE();
+
+
 
 private:
 	void SetVisible(bool isVisible);

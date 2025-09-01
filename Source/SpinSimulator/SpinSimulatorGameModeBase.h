@@ -28,6 +28,9 @@ public:
 	ASpinSimulatorGameModeBase();
 	virtual void BeginPlay() override;
 
+private:
+	void GolfBallMeshSize();
+
 protected:
 	//UPROPERTY(EditAnywhere) TSubclassOf<AGolfBall> GolfBallActorClass;
 };

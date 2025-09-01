@@ -38,13 +38,10 @@ public:
     AGolfBall* GetBallActor() {return ControlledBallActor;}
     bool CheckReadCSV() {return bReadRangeforSyntheticData;}
     void ReadRangeforSyntheticData();
-    void ScanBallMeshVertexData();
+    void CheckVertexData_SpinDOE();
 
     const TArray<FVector> GetSpinAxisArray() {return m_arrSpinAxis;}
     const TArray<float> GetRPMArray() { return m_arrRPM; }
-
-	void AddSpinAxis(FVector newSpinAxis) { m_arrSpinAxis.Add(newSpinAxis); }
-	void AddRPM(float newRPM) { m_arrRPM.Add(newRPM); }
 
 protected:
     void RegisterCMD();
@@ -60,6 +57,7 @@ protected:
     void OnCaptureAllCombinations(const TArray<FString>& Args);
     void OnCaptureCSV(const TArray<FString>& Args);
     void OnCheckVertexPosition(const TArray<FString>& Args);
+    void OnProjectVertices(const TArray<FString>& Args);
 
     void VirtualSpinCapture();
 

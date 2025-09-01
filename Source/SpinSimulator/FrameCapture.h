@@ -7,6 +7,14 @@
 #include "FrameCapture.generated.h"
 
 
+// Project an array of local-space vertices to 2D pixel coords of a RenderTarget
+// RTSize = (100,100) 등 캡처 타겟 크기
+struct FProjectedPoint
+{
+    bool   bOnScreen = false;  // NDC가 [-1,1] 범위 내 & w>0
+    FVector2D Pixel;           // (0,0) = 좌상단, (W-1,H-1) = 우하단
+    float   Depth = 0.f;       // 선택: 클립 w 또는 NDC z 등 필요시
+};
 
 UCLASS()
 class AFrameCapture : public AActor
@@ -27,10 +35,22 @@ public:
 
 private:
     void SaveRenderTargetToPNG(const FString& FileName);
+
     FMatrix MakeViewMatrix_FromCapture();
     bool GetVertexPixelOnCapture(UStaticMeshComponent* MeshComp, int32 VertexIdx, FVector2D& OutPixel);
     bool ProjectWorldToCapturePixel(const FVector& WorldPos, FVector2D& OutPixel);
     FMatrix MakeProjectionMatrix_FromCapture(int32 RTWidth, int32 RTHeight, float NearZ = 10.f, float FarZ = 1000000.f);
+
+public:
+    void ProjectLocalVerticesArray_ToRTPixels(const USceneComponent* MeshComponent, const TArray<FVector>& LocalVertices, const FVector& CamWorldLocation,const FRotator& CamWorldRotation,float CameraFOV_Vertical_Deg, int32 RTWidth, int32 RTHeight,TArray<FProjectedPoint>& OutPixels);
+
+    void ProjectVertices(UStaticMeshComponent* MeshComp, const TArray<FVector>& localVerts);
+
+private:
+    FMatrix MakeViewMatrix(const FVector& CamLocation, const FRotator& CamRotation);
+    FMatrix MakePerspectiveMatrix_VertFOV(float FovY_Deg, float Aspect, float NearZ = 10.f, float FarZ = 1e6f);
+    FMatrix MakePerspectiveMatrix_XForward(float FovY_Deg, float Aspect, float NearZ = 10.f, float FarZ = 1e6f);
+    FProjectedPoint ProjectWorldToRTPixel(const FVector& WorldPos,const FMatrix& ViewMatrix,const FMatrix& ProjMatrix,int32 RTWidth, int32 RTHeight);
 
 private:
     UPROPERTY(EditAnywhere)
