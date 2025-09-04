@@ -35,11 +35,7 @@ public:
 
 private:
     void SaveRenderTargetToPNG(const FString& FileName);
-
-    FMatrix MakeViewMatrix_FromCapture();
     bool GetVertexPixelOnCapture(UStaticMeshComponent* MeshComp, int32 VertexIdx, FVector2D& OutPixel);
-    bool ProjectWorldToCapturePixel(const FVector& WorldPos, FVector2D& OutPixel);
-    FMatrix MakeProjectionMatrix_FromCapture(int32 RTWidth, int32 RTHeight, float NearZ = 10.f, float FarZ = 1000000.f);
 
 public:
     void ProjectLocalVerticesArray_ToRTPixels(const USceneComponent* MeshComponent, const TArray<FVector>& LocalVertices, const FVector& CamWorldLocation,const FRotator& CamWorldRotation,float CameraFOV_Vertical_Deg, int32 RTWidth, int32 RTHeight,TArray<FProjectedPoint>& OutPixels);

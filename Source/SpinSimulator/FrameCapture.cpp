@@ -300,27 +300,65 @@ void AFrameCapture::SaveRenderTargetToPNG(const FString& fileName)
 
 bool AFrameCapture::ProjectWorldToRenderTargetPixel(const FVector& WorldPos,FVector2D& OutPixel /* 캡처 이미지 상의 (x,y) 픽셀 좌표 */)
 { 
-
-	
-	// 1) SceneCapture2D 카메라 파라미터를 FMinimalViewInfo로 획득
-	//FMinimalViewInfo ViewInfo;
-	//SceneCapture->GetCameraView(/*DeltaTime=*/0.f, /*out*/ViewInfo);  // SceneCapture2D 전용 구현 존재 :contentReference[oaicite:1]{index=1}
-
-	// 2) 투영 데이터 컨테이너 준비 (+ 캡처 타깃 해상도 기준 ViewRect 설정)
-	/*FSceneViewProjectionData ProjData;
-	const int32 W = RenderTarget->SizeX;
-	const int32 H = RenderTarget->SizeY;
-	const FIntRect ViewRect(0, 0, W, H);
-	ProjData.SetViewRectangle(ViewRect);*/
-
     if (!SceneCapture || !RenderTarget)
         return false;
 
-	// 3) ViewInfo 기반으로 ProjectionMatrix / ViewMatrix 계산
+	//ProjectionMatrix / ViewMatrix 계산
     const int32 W = RenderTarget->SizeX;
     const int32 H = RenderTarget->SizeY;
-    const FMatrix View = MakeViewMatrix_FromCapture();
-    const FMatrix Proj = MakeProjectionMatrix_FromCapture(W, H);
+
+    //1.  USceneCaptureComponent2D의 월드 변환(위치, 회전) 으로 ViewMatrix를 만듦
+    FMatrix View;
+    const FTransform& T = SceneCapture->GetComponentTransform();
+    const FVector    CamLoc = T.GetLocation();
+    const FRotator   CamRot = T.Rotator();
+
+    // 월드->뷰: 회전의 역행렬 뒤에 평행이동(-CamLoc)
+    const FMatrix ViewRotMat = FInverseRotationMatrix(CamRot);
+    const FMatrix ViewTrans = FTranslationMatrix(-CamLoc);
+
+    // 언리얼 좌표계(X+전방,Y+우측,Z+상)에서 뷰 공간 정렬
+    // (보통 x=우, y=상, z=전방 기반의 그래픽스 뷰로 보정할 때 축 스왑/부호행렬을 곱하지만,
+    // x,y 픽셀 투영은 회전/평행이동만 맞으면 동일하게 계산)
+    View = ViewRotMat * ViewTrans;
+
+    //캡처 FOV / Ortho 설정과 RT 해상도로 ProjectionMatrix를 만듦
+    FMatrix Proj;
+    const float NearZ = 10.f;
+    const float FarZ = 1000000.f;
+    if (SceneCapture->ProjectionType == ECameraProjectionMode::Orthographic)
+    {
+        const float OrthoWidth = SceneCapture->OrthoWidth;             // 월드 단위 폭
+        const float OrthoHeight = OrthoWidth * (float)H / (float)W;
+        const float Left = -OrthoWidth * 0.5f;
+        const float Right = OrthoWidth * 0.5f;
+        const float Bottom = -OrthoHeight * 0.5f;
+        const float Top = OrthoHeight * 0.5f;
+
+        // 표준 오쏘 투영(행렬요소는 Unreal FMatrix(행우선) 기준)
+        View = FMatrix(
+            FPlane(2.f / (Right - Left), 0, 0, 0),
+            FPlane(0, 2.f / (Top - Bottom), 0, 0),
+            FPlane(0, 0, 1.f / (FarZ - NearZ), 0),   // z는 나중에 안 씀 (픽셀 투영엔 x,y만 필요)
+            FPlane(-(Right + Left) / (Right - Left), -(Top + Bottom) / (Top - Bottom), -NearZ / (FarZ - NearZ), 1)
+        );
+    }
+    else
+    {
+        // 원근 투영
+        const float Aspect = (float)W / (float)H;
+        const float HFovRad = FMath::DegreesToRadians(SceneCapture->FOVAngle * 0.5f);
+        const float f = 1.f / FMath::Tan(HFovRad); // vertical fov 기준
+
+        // 표준 D3D식(좌표 뒤집기 없이 x,y만 사용) - x,y 투영엔 충분히 일치
+        View = FMatrix(
+            FPlane(f / Aspect, 0, 0, 0),
+            FPlane(0, f, 0, 0),
+            FPlane(0, 0, (FarZ) / (FarZ - NearZ), 1),
+            FPlane(0, 0, (-FarZ * NearZ) / (FarZ - NearZ), 0)
+        );
+    }
+
 
     // 4) View*Projection 합성
     const FMatrix ViewProj = View * Proj;
@@ -354,7 +392,6 @@ bool AFrameCapture::ProjectWorldToRenderTargetPixel(const FVector& WorldPos,FVec
 
 bool AFrameCapture::GetVertexPixelOnCapture(UStaticMeshComponent* MeshComp,int32 VertexIdx,FVector2D& OutPixel)
 {
-
     //월드 -> 뷰 ->클립 -> NDC -> 픽셀
     //View = 카메라의 역변환(회전->평행이동)
     //Projection = 수직 FOV 기반 표준 퍼스펙티브(UE의 Reversed - Z를 쓰든 말든 x, y는 동일)
@@ -396,24 +433,67 @@ bool AFrameCapture::GetVertexPixelOnCapture(UStaticMeshComponent* MeshComp,int32
     const FVector VWorld = MeshComp->GetComponentTransform().TransformPosition((FVector)VLocal);
 
     // 3) 캡처 RT 픽셀 좌표로 투영
-    return ProjectWorldToCapturePixel(VWorld, OutPixel);
-}
-
-// 월드 3D -> 캡처 RT 픽셀 좌표
-bool AFrameCapture::ProjectWorldToCapturePixel(const FVector& WorldPos, FVector2D& OutPixel)
-{
     if (!RenderTarget)
         return false;
 
     const int32 W = RenderTarget->SizeX;
     const int32 H = RenderTarget->SizeY;
 
-    const FMatrix View = MakeViewMatrix_FromCapture();
-    const FMatrix Proj = MakeProjectionMatrix_FromCapture(W, H);
+    //1.  USceneCaptureComponent2D의 월드 변환(위치, 회전) 으로 ViewMatrix를 만듦
+    FMatrix View;
+    const FTransform& T = SceneCapture->GetComponentTransform();
+    const FVector    CamLoc = T.GetLocation();
+    const FRotator   CamRot = T.Rotator();
+
+    // 월드->뷰: 회전의 역행렬 뒤에 평행이동(-CamLoc)
+    const FMatrix ViewRotMat = FInverseRotationMatrix(CamRot);
+    const FMatrix ViewTrans = FTranslationMatrix(-CamLoc);
+
+    // 언리얼 좌표계(X+전방,Y+우측,Z+상)에서 뷰 공간 정렬
+    // (보통 x=우, y=상, z=전방 기반의 그래픽스 뷰로 보정할 때 축 스왑/부호행렬을 곱하지만,
+    // x,y 픽셀 투영은 회전/평행이동만 맞으면 동일하게 계산)
+    View = ViewRotMat * ViewTrans;
+
+    //2. 캡처 FOV / Ortho 설정과 RT 해상도로 ProjectionMatrix를 만듦
+    FMatrix Proj;
+    const float NearZ = 10.f;
+    const float FarZ = 1000000.f;
+    if (SceneCapture->ProjectionType == ECameraProjectionMode::Orthographic)
+    {
+        const float OrthoWidth = SceneCapture->OrthoWidth;             // 월드 단위 폭
+        const float OrthoHeight = OrthoWidth * (float)H / (float)W;
+        const float Left = -OrthoWidth * 0.5f;
+        const float Right = OrthoWidth * 0.5f;
+        const float Bottom = -OrthoHeight * 0.5f;
+        const float Top = OrthoHeight * 0.5f;
+
+        // 표준 오쏘 투영(행렬요소는 Unreal FMatrix(행우선) 기준)
+        View = FMatrix(
+            FPlane(2.f / (Right - Left), 0, 0, 0),
+            FPlane(0, 2.f / (Top - Bottom), 0, 0),
+            FPlane(0, 0, 1.f / (FarZ - NearZ), 0),   // z는 나중에 안 씀 (픽셀 투영엔 x,y만 필요)
+            FPlane(-(Right + Left) / (Right - Left), -(Top + Bottom) / (Top - Bottom), -NearZ / (FarZ - NearZ), 1)
+        );
+    }
+    else
+    {
+        // 원근 투영
+        const float Aspect = (float)W / (float)H;
+        const float HFovRad = FMath::DegreesToRadians(SceneCapture->FOVAngle * 0.5f);
+        const float f = 1.f / FMath::Tan(HFovRad); // vertical fov 기준
+
+        // 표준 D3D식(좌표 뒤집기 없이 x,y만 사용) - x,y 투영엔 충분히 일치
+        View = FMatrix(
+            FPlane(f / Aspect, 0, 0, 0),
+            FPlane(0, f, 0, 0),
+            FPlane(0, 0, (FarZ) / (FarZ - NearZ), 1),
+            FPlane(0, 0, (-FarZ * NearZ) / (FarZ - NearZ), 0)
+        );
+    }
 
     const FMatrix ViewProj = View * Proj;
 
-    const FVector4 Clip = ViewProj.TransformFVector4(FVector4(WorldPos, 1.f));
+    const FVector4 Clip = ViewProj.TransformFVector4(FVector4(VWorld, 1.f));
     if (Clip.W <= KINDA_SMALL_NUMBER)  // 카메라 뒤/분모 0
         return false;
 
@@ -428,74 +508,12 @@ bool AFrameCapture::ProjectWorldToCapturePixel(const FVector& WorldPos, FVector2
     OutPixel = FVector2D(sx, sy);
     // 프러스텀 밖 여부는 ndcX/Y 범위로 체크
     return (ndcX >= -1.f && ndcX <= 1.f && ndcY >= -1.f && ndcY <= 1.f);
-}
 
-FMatrix AFrameCapture::MakeViewMatrix_FromCapture()
-{
-    //1.  USceneCaptureComponent2D의 월드 변환(위치, 회전) 으로 ViewMatrix를 만듦
-    const FTransform& T = SceneCapture->GetComponentTransform();
-    const FVector    CamLoc = T.GetLocation();
-    const FRotator   CamRot = T.Rotator();
-
-    // 월드->뷰: 회전의 역행렬 뒤에 평행이동(-CamLoc)
-    const FMatrix ViewRotMat = FInverseRotationMatrix(CamRot);
-    const FMatrix ViewTrans = FTranslationMatrix(-CamLoc);
-
-    // 언리얼 좌표계(X+전방,Y+우측,Z+상)에서 뷰 공간 정렬
-    // (보통 x=우, y=상, z=전방 기반의 그래픽스 뷰로 보정할 때 축 스왑/부호행렬을 곱하지만,
-    // x,y 픽셀 투영은 회전/평행이동만 맞으면 동일하게 계산)
-    return ViewRotMat * ViewTrans;
-}
-
-FMatrix AFrameCapture::MakeProjectionMatrix_FromCapture(int32 RTWidth, int32 RTHeight, float NearZ/* = 10.f*/, float FarZ /*= 1000000.f*/)
-{
-    //2. 캡처 FOV / Ortho 설정과 RT 해상도로 ProjectionMatrix를 만듦
-    if (SceneCapture->ProjectionType == ECameraProjectionMode::Orthographic)
-    {
-        const float OrthoWidth = SceneCapture->OrthoWidth;             // 월드 단위 폭
-        const float OrthoHeight = OrthoWidth * (float)RTHeight / (float)RTWidth;
-        const float Left = -OrthoWidth * 0.5f;
-        const float Right = OrthoWidth * 0.5f;
-        const float Bottom = -OrthoHeight * 0.5f;
-        const float Top = OrthoHeight * 0.5f;
-
-        // 표준 오쏘 투영(행렬요소는 Unreal FMatrix(행우선) 기준)
-        return FMatrix(
-            FPlane(2.f / (Right - Left), 0, 0, 0),
-            FPlane(0, 2.f / (Top - Bottom), 0, 0),
-            FPlane(0, 0, 1.f / (FarZ - NearZ), 0),   // z는 나중에 안 씀 (픽셀 투영엔 x,y만 필요)
-            FPlane(-(Right + Left) / (Right - Left), -(Top + Bottom) / (Top - Bottom), -NearZ / (FarZ - NearZ), 1)
-        );
-    }
-    else
-    {
-        // 원근 투영
-        const float Aspect = (float)RTWidth / (float)RTHeight;
-        const float HFovRad = FMath::DegreesToRadians(SceneCapture->FOVAngle * 0.5f);
-        const float f = 1.f / FMath::Tan(HFovRad); // vertical fov 기준
-
-        // 표준 D3D식(좌표 뒤집기 없이 x,y만 사용) - x,y 투영엔 충분히 일치
-        return FMatrix(
-            FPlane(f / Aspect, 0, 0, 0),
-            FPlane(0, f, 0, 0),
-            FPlane(0, 0, (FarZ) / (FarZ - NearZ), 1),
-            FPlane(0, 0, (-FarZ * NearZ) / (FarZ - NearZ), 0)
-        );
-    }
 }
 
 //MeshComponent 정점을 100x100 RenderTarget 좌표로 투영
 void AFrameCapture::ProjectVertices(UStaticMeshComponent* MeshComp, const TArray<FVector>& localVerts)
 {
-    //FVector CenterTest = SceneCapture->GetComponentLocation() + SceneCapture->GetForwardVector() * 100.f;
-    //FVector2D Px;
-    //if (ProjectWorldToCapturePixel(CenterTest, Px))
-    //{
-    //    // Px가 (W/2, H/2)에 근접해야 정상
-
-    //    UE_LOG(LogTemp, Log, TEXT("Vertex %d,%d"), Px.X, Px.Y);
-    //}
-
     // 1. 카메라 파라미터 (SceneCapture와 동일하게 맞춤)
     FVector CamLoc = SceneCapture->GetComponentLocation();
     FRotator CamRot = SceneCapture->GetComponentRotation();
@@ -515,19 +533,6 @@ void AFrameCapture::ProjectVertices(UStaticMeshComponent* MeshComp, const TArray
     int32 RTWidth = RenderTarget->SizeX;
     int32 RTHeight = RenderTarget->SizeY;
 
-    // 2. 메쉬 정점 로컬 좌표 배열 준비 (예시)
-    //TArray<FVector> LocalVerts;
-    //if (MeshComp && MeshComp->GetStaticMesh())
-    //{
-    //    const FStaticMeshLODResources& LOD = MeshComp->GetStaticMesh()->GetRenderData()->LODResources[0];
-    //    const FPositionVertexBuffer& VB = LOD.VertexBuffers.PositionVertexBuffer;
-
-    //    for (uint32 i = 0; i < VB.GetNumVertices(); ++i)
-    //    {
-    //        LocalVerts.Add(VB.VertexPosition(i)); // 로컬 좌표
-    //    }
-    //}
-
     // 3. 정점들을 픽셀 좌표로 변환
     TArray<FProjectedPoint> OutPixels;
     ProjectLocalVerticesArray_ToRTPixels(MeshComp, localVerts, CamLoc, CamRot, CamFOV, RTWidth, RTHeight, OutPixels);
@@ -546,8 +551,7 @@ void AFrameCapture::ProjectVertices(UStaticMeshComponent* MeshComp, const TArray
     }
 }
 
-/// <summary>
-/// 
+/// <summary>// 
 /// </summary>
 /// <param name="MeshComponent"> 정점의 로컬->월드 변환 용 </param>
 /// <param name="LocalVertices"></param>
@@ -576,41 +580,20 @@ void AFrameCapture::ProjectLocalVerticesArray_ToRTPixels(const USceneComponent* 
     }
 }
 
-
+// 1) 카메라 뷰 행렬(= 월드→뷰 변환) : 카메라 트랜스폼의 역변환
 FMatrix AFrameCapture::MakeViewMatrix(const FVector& CamLocation, const FRotator& CamRotation)
 {
-    // 뷰 행렬 = 카메라 월드 변환의 역행렬 (회전 역 -> 위치 반전)
+    // UE는 +X가 전방, +Z up. 뷰행렬은 "카메라 기준"으로 보는 좌표계.
     const FRotationMatrix R(CamRotation);
-    const FTranslationMatrix T(-CamLocation);
-    return R.GetTransposed() * T; // == FInverseRotationMatrix * FTranslationMatrix(-Loc)
-}
-
-/// <summary>
-/// CineCamera 사용 시 FOV 대신 초점거리/필름백을 쓴다면 수직 FOV로 변환 후 사용.
-/// 수직 FOV 공식  FovY = 2*atan((SensorHeight)/(2*focal)) 
-/// 센서 치수/초점거리 단위는 일관되게(mm) 맞출것!
-/// </summary>
-/// <param name="FovY_Deg"></param>
-/// <param name="Aspect"></param>
-/// <param name="NearZ"></param>
-/// <param name="FarZ"></param>
-/// <returns></returns>
-FMatrix AFrameCapture::MakePerspectiveMatrix_VertFOV(float FovY_Deg, float Aspect, float NearZ/* = 10.f*/, float FarZ/* = 1e6f*/)
-{
-  
-    // 수직 FOV 기반 표준 퍼스펙티브 (x,y 결과는 UE의 Reversed-Z와 동일)
-    const float f = 1.0f / FMath::Tan(FMath::DegreesToRadians(FovY_Deg) * 0.5f);
-    const float m00 = f / Aspect;
-    const float m11 = f;
-    const float m22 = FarZ / (FarZ - NearZ);
-    const float m32 = (-FarZ * NearZ) / (FarZ - NearZ);
-
-    return FMatrix(FPlane(m00, 0, 0, 0), FPlane(0, m11, 0, 0), FPlane(0, 0, m22, 1), FPlane(0, 0, m32, 0));
+    const FMatrix InvRot = R.GetTransposed();       // 회전의 역
+    const FTranslationMatrix InvTrans(-CamLocation);     // 평행이동의 역
+    return InvRot * InvTrans; // 월드→뷰 : 카메라 월드 변환의 역행렬 (회전 역 -> 위치 반전) == FInverseRotationMatrix * FTranslationMatrix(-Loc)
 }
 
 // 전방 +X(UE 카메라) 기준의 표준 퍼스펙티브 행렬 (비-Reversed Z; 픽셀 투영용)
 FMatrix AFrameCapture::MakePerspectiveMatrix_XForward(float FovY_Deg, float Aspect, float NearZ /*= 10.f*/, float FarZ/* = 1e6f*/)
 {
+    //뷰공간 프러스텀 판정 (가장 신뢰도 높음) : 수직/수평 half-FOV의 tan 계산
     const float tanY = FMath::Tan(FMath::DegreesToRadians(FovY_Deg) * 0.5f);
     const float tanX = tanY * Aspect;
 
@@ -634,13 +617,39 @@ FMatrix AFrameCapture::MakePerspectiveMatrix_XForward(float FovY_Deg, float Aspe
     );
 }
 
+/// <summary>
+/// CineCamera 사용 시 FOV 대신 초점거리/필름백을 쓴다면 수직 FOV로 변환 후 사용.
+/// 수직 FOV 공식  FovY = 2*atan((SensorHeight)/(2*focal)) 
+/// 센서 치수/초점거리 단위는 일관되게(mm) 맞출것!
+/// </summary>
+/// <param name="FovY_Deg"></param>
+/// <param name="Aspect"></param>
+/// <param name="NearZ"></param>
+/// <param name="FarZ"></param>
+/// <returns></returns>
+FMatrix AFrameCapture::MakePerspectiveMatrix_VertFOV(float FovY_Deg, float Aspect, float NearZ/* = 10.f*/, float FarZ/* = 1e6f*/)
+{
+
+    // 수직 FOV 기반 표준 퍼스펙티브 (x,y 결과는 UE의 Reversed-Z와 동일)
+    const float f = 1.0f / FMath::Tan(FMath::DegreesToRadians(FovY_Deg) * 0.5f);
+    const float m00 = f / Aspect;
+    const float m11 = f;
+    const float m22 = FarZ / (FarZ - NearZ);
+    const float m32 = (-FarZ * NearZ) / (FarZ - NearZ);
+
+    return FMatrix(FPlane(m00, 0, 0, 0), FPlane(0, m11, 0, 0), FPlane(0, 0, m22, 1), FPlane(0, 0, m32, 0));
+}
+
+
 FProjectedPoint AFrameCapture::ProjectWorldToRTPixel(const FVector& WorldPos, const FMatrix& ViewMatrix, const FMatrix& ProjMatrix, int32 RTWidth, int32 RTHeight)
 {
-   // UE 카메라 기준 전방은 + X이므로 w_clip 대신 뷰공간 X(Eye.X) > 0으로 앞/뒤를 판정
-    const FVector4 P4(WorldPos, 1.0f);
-    const FVector4 Eye = ViewMatrix.TransformFVector4(P4); // 카메라 공간
-
     FProjectedPoint Out;
+
+    // 1) 월드-> 뷰(카메라) 공간
+    // UE 카메라 기준 전방은 + X이므로 w_clip 대신 뷰공간 X(Eye.X) > 0으로 앞/뒤를 판정
+    const FVector4 P4(WorldPos, 1.0f);
+    const FVector4 Eye = ViewMatrix.TransformFVector4(P4);  // UE 카메라 전방 = +X
+
 
     // 전방(+X)만 유효
     if (Eye.X <= 0.f)
@@ -653,6 +662,7 @@ FProjectedPoint AFrameCapture::ProjectWorldToRTPixel(const FVector& WorldPos, co
     const float W = Clip.W;
     const FVector2D NDC(Clip.X / W, Clip.Y / W); // [-1,1]
 
+
     Out.bOnScreen = (FMath::Abs(NDC.X) <= 1.f && FMath::Abs(NDC.Y) <= 1.f);
 
     const float sx = (NDC.X * 0.5f + 0.5f) * RTWidth;
@@ -661,3 +671,4 @@ FProjectedPoint AFrameCapture::ProjectWorldToRTPixel(const FVector& WorldPos, co
     Out.Depth = W; // 필요 시
     return Out;
 }
+
